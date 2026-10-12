@@ -11,7 +11,7 @@
 
   root.HubClientAPI = {
     api: 1,
-    rev: 2,
+    rev: 99,
     snapshot(s) {
       const out = renamed(s, "fleet", "sessions");
       return { ...out, sessions: (out.sessions || []).map((x) => renamed(x, "status", "state")) };

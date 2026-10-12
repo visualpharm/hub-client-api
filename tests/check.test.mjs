@@ -71,3 +71,52 @@ test("v1: поле correction клиента до хаба не доходит, 
   assert.deepEqual(v1.request(answer), answer);
   assert.equal(v1.api, 1);
 });
+
+// ---- чьё сообщение: tools/watch.mjs и правило timeline ----
+import { checkJournal, checkLive, checkReference, ownerRows } from "../tools/watch.mjs";
+
+const ref = JSON.parse(fs.readFileSync(path.join(root, "tests", "reference", "hub.json"), "utf8"));
+const none = { api: 1, rev: 0, snapshot: (x) => x, timeline: (x) => x, request: (x) => x };
+
+test("эталон: словами владельца — только его сообщения; ответы и файлы на месте", () => {
+  assert.deepEqual(checkReference(v1, ref, "hub"), []);
+  const items = v1.timeline(structuredClone(ref.timeline)).items;
+  assert.deepEqual(ownerRows(items).map((it) => it.id), ["m1", "m2", "m3", "m9"]);
+  assert.deepEqual(items.filter((it) => ["m5", "m6", "m7", "m15"].includes(it.id)).map((it) => it.sender), ["hub", "плагин", "ядро", "watch"]);
+  assert.equal(items.find((it) => it.id === "m11").sender, "report-maker");   // названный автор не меняется
+  assert.deepEqual(v1.timeline({ epoch: "e", rev: 1 }), { epoch: "e", rev: 1 });
+});
+
+test("без правила сверка ловит служебное в роли владельца — на эталоне и на живой ленте", () => {
+  const bad = checkReference(none, ref, "hub");
+  assert.equal(bad.length, 4);
+  assert.match(bad[0], /служебное сообщение m5 показано словами владельца/);
+  const live = checkLive("hub", ref.timeline, ref.timeline);
+  assert.equal(live.length, 4);
+  assert.match(live[1], /m6 \(канал plugin\) показано словами владельца/);
+  assert.deepEqual(checkLive("hub", ref.timeline, v1.timeline(structuredClone(ref.timeline))), []);
+  // правило потеряло ответ или слово владельца — тоже расхождение
+  const fixed = v1.timeline(structuredClone(ref.timeline));
+  const lost = { ...fixed, items: fixed.items.filter((it) => it.k !== 4 && it.id !== "m1") };
+  assert.deepEqual(checkLive("hub", ref.timeline, lost).slice(0, 2), ["hub: после правил строк 13 вместо 15", "hub: строк out после правил 1 вместо 2"]);
+  assert.match(checkLive("hub", ref.timeline, lost)[2], /слово владельца m1 пропало/);
+});
+
+test("журнал против ленты: слово владельца на месте и его словами, чужое — нет", () => {
+  const items = v1.timeline(structuredClone(ref.timeline)).items;
+  const journal = [
+    { id: "m1", session: "hub", owner: true, channel: "web", text: "Сделай отчёт" },
+    { id: "m6", session: "hub", owner: false, channel: "plugin", text: "Новые входящие" },
+    { id: "m9", session: "hub", owner: true, channel: "web", text: "Ответ на вопрос: Да" },
+  ];
+  const states = { m1: {}, m6: {}, m9: {}, m12: {} };
+  assert.deepEqual(checkJournal(journal, { hub: items }, states), []);
+  assert.match(checkJournal(journal, { hub: ref.timeline.items }, states)[0], /m6 \(канал plugin\) — не слова владельца/);
+  const gone = items.filter((it) => it.id !== "m9");
+  assert.match(checkJournal(journal, { hub: gone }, states)[0], /слова владельца m9 нет в ленте/);
+  const foreign = items.map((it) => (it.id === "m1" ? { ...it, sender: "плагин" } : it));
+  assert.match(checkJournal(journal, { hub: foreign }, states)[0], /слово владельца m1 показано как чужое/);
+  // старше ленты или снято — не расхождение
+  assert.deepEqual(checkJournal([{ id: "m0", session: "hub", owner: true, channel: "web" }], { hub: items }, { m0: {} }), []);
+  assert.deepEqual(checkJournal([{ id: "m12", session: "hub", owner: true, channel: "web" }], { hub: items }, { m12: { state: "cancelled" } }), []);
+});

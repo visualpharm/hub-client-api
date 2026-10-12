@@ -1,0 +1,25 @@
+{
+  "about": "Эталонная лента сессии-хаба в том виде, как её отдаёт хаб: все виды входящих строк. owner — id строк, которые клиент должен показать словами владельца; visible — сколько ответов и файлов должно остаться.",
+  "owner": ["m1", "m2", "m3", "m9"],
+  "visible": {"out": 2, "reply": 1, "file": 1},
+  "timeline": {
+    "epoch": "e1", "rev": 12, "full": true,
+    "items": [
+      {"k": 1, "seq": 1, "ts": 1, "kind": "in", "id": "m1", "text": "Сделай отчёт", "channel": "web", "sender": null, "attachments": []},
+      {"k": 2, "seq": 2, "ts": 2, "kind": "in", "id": "m2", "text": "И пришли файлом", "channel": "telegram", "sender": null},
+      {"k": 3, "seq": 3, "ts": 3, "kind": "in", "id": "m3", "text": "hub status", "channel": "cli", "sender": null},
+      {"k": 4, "seq": 4, "ts": 4, "kind": "out", "text": "Принял, поручаю исполнителю."},
+      {"k": 5, "seq": 5, "ts": 5, "kind": "in", "id": "m5", "text": "Собери отчёт за неделю", "channel": "session", "to": "report-maker", "sender": null},
+      {"k": 6, "seq": 6, "ts": 6, "kind": "in", "id": "m6", "text": "Новые входящие — подготовь черновики", "channel": "plugin", "sender": null},
+      {"k": 7, "seq": 7, "ts": 7, "kind": "in", "id": "m7", "text": "Правила для всех сессий обновлены", "channel": "core", "sender": null},
+      {"k": 8, "seq": 8, "ts": 8, "kind": "in", "id": "m8", "text": "[⏰ schedule check-mail] Проверь почту", "channel": "schedule", "sender": "Расписание", "job": "check-mail"},
+      {"k": 9, "seq": 9, "ts": 9, "kind": "in", "id": "m9", "text": "Ответ на вопрос: Да", "channel": "web", "sender": null},
+      {"k": 10, "seq": 10, "ts": 10, "kind": "in", "id": "m10", "text": "REPLIED: отчёт готов", "channel": "core", "sender": "ядро"},
+      {"k": 11, "seq": 11, "ts": 11, "kind": "in", "id": "m11", "text": "Отчёт готов, файл приложен", "channel": "session", "sender": "report-maker"},
+      {"k": 12, "seq": 12, "ts": 12, "kind": "reply", "from": "report-maker", "text": "Отчёт готов"},
+      {"k": 13, "seq": 13, "ts": 13, "kind": "file", "name": "report.pdf", "path": "/tmp/report.pdf", "image": false},
+      {"k": 14, "seq": 14, "ts": 14, "kind": "out", "text": "Отчёт у тебя."},
+      {"k": 15, "seq": 15, "ts": 15, "kind": "in", "id": "m15", "text": "Сторож: сессия зависла", "channel": "watch", "sender": null}
+    ]
+  }
+}
