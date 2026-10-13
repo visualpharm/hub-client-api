@@ -119,6 +119,8 @@ test("журнал против ленты: слово владельца на �
   // старше ленты или снято — не расхождение
   assert.deepEqual(checkJournal([{ id: "m0", session: "hub", owner: true, channel: "web" }], { hub: items }, { m0: {} }), []);
   assert.deepEqual(checkJournal([{ id: "m12", session: "hub", owner: true, channel: "web" }], { hub: items }, { m12: { state: "cancelled" } }), []);
+  // остановленному исполнителю слово ушло тому, кто поднял: в его ленте его нет — не расхождение
+  assert.deepEqual(checkJournal([{ id: "m9", session: "hub", owner: true, channel: "web", rerouted: true }], { hub: gone }, states), []);
 });
 
 test("вызовы клиентов: хаб не отвечает на запрос договора — расхождение; необязательное на этом хабе — нет", async () => {

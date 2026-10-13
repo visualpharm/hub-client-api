@@ -65,18 +65,23 @@ export function journalMessages(file, hours, now = Date.now() / 1000) {
   const fd = fs.openSync(file, "r"), buf = Buffer.alloc(span);
   fs.readSync(fd, buf, 0, span, size - span);
   fs.closeSync(fd);
-  const out = [];
+  const out = [], stopped = new Map();   // сессия → номер последней остановки исполнителя
   for (const line of buf.toString("utf8").split("\n").slice(1)) {
-    if (!line.includes('"message.received"')) continue;
+    if (!line.includes('"message.received"') && !line.includes('"session.stop_requested"')) continue;
     let ev;
     try { ev = JSON.parse(line); } catch { continue; }
     const d = ev.data || {};
+    if (ev.type === "session.stop_requested") stopped.set(ev.entity, ev.seq);
     if (ev.type !== "message.received" || ev.ts < now - hours * 3600) continue;
     out.push({ id: `m${ev.seq}`, session: d.to, channel: d.channel || ev.src,
                owner: d.owner === true && OWNER_CHANNELS.includes(d.channel), text: d.text });
   }
+  // исполнителя остановили позже — его очередь ядро отдало тому, кто поднял: слово владельца ушло в ленту другой сессии
+  for (const m of out) m.rerouted = (stopped.get(m.session) || 0) > ev0(m);
   return out;
 }
+
+const ev0 = (m) => Number(m.id.slice(1));
 
 /** Журнал против лент после правил: lines — {сессия: строки после правил}, states — состояния сообщений снимка. */
 export function checkJournal(messages, lines, states = {}) {
@@ -94,6 +99,7 @@ export function checkJournal(messages, lines, states = {}) {
     }
     const state = (states[m.id] || {}).state;
     if (!rows.length) {
+      if (m.rerouted) continue;
       // лента сессии короче журнала, сообщение снято или сессии нет в выборке — не расхождение
       const items = lines[m.session];
       const oldest = items && items.length ? Math.min(...items.map((it) => Number(it.seq) || Infinity)) : Infinity;
