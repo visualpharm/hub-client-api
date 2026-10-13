@@ -130,7 +130,17 @@ async function probe(url) {
 
 /** Каждый вызов клиентов против живого хаба: запросы договора (после правила request) и то, что просят страницы
  *  разделов, открытые внутри приложений (страница хаба, её поток, модули плагинов и их запросы данных). */
-export async function checkCalls(base, contract, rules, snap, ask = probe) {
+/** Молчание хаба — ещё не расхождение: после перезапуска web первый запрос холодный (история потока — до 30 с), под
+ *  нагрузкой ответ не укладывается в срок. Один повтор через паузу; молчит и тогда — сообщаем. */
+export const patient = (ask, pause = 45000) => async (url) => {
+  const got = await ask(url);
+  if (got.code !== 0) return got;
+  await new Promise((r) => setTimeout(r, pause));
+  return ask(url);
+};
+
+export async function checkCalls(base, contract, rules, snap, ask0 = probe, pause = 45000) {
+  const ask = patient(ask0, pause);
   const out = [];
   const hub = ((snap.sessions || []).find((s) => s.kind === "hub") || {}).name || "";
   for (const r of contract.requests.filter((r) => r.method === "GET" && (r.stream || r.probe !== undefined))) {
@@ -166,8 +176,15 @@ export async function checkCalls(base, contract, rules, snap, ask = probe) {
   return out;
 }
 
-async function get(url, text = false) {
-  const r = await fetch(url, { headers: { "X-Hub": "1", "X-Hub-Api": "1" } });
+async function get(url, text = false, again = true) {
+  let r;
+  try {
+    r = await fetch(url, { headers: { "X-Hub": "1", "X-Hub-Api": "1" } });
+  } catch (e) {   // хаб перезапускается — один повтор через паузу, как у запросов договора
+    if (!again) throw e;
+    await new Promise((done) => setTimeout(done, 45000));
+    return get(url, text, false);
+  }
   if (!r.ok) throw new Error(`${url}: ${r.status}`);
   return text ? r.text() : r.json();
 }

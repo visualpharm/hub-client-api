@@ -135,6 +135,14 @@ test("вызовы клиентов: хаб не отвечает на запр�
   const quiet = await checkCalls("http://127.0.0.1:9", contract, v1, snap, ask([]));
   assert.deepEqual(quiet.filter((p) => p.startsWith("запрос клиента")), []);
   assert.ok(seen.includes("http://127.0.0.1:9/api/timeline?session=hub&since=0&epoch="));
+  // холодный первый запрос после перезапуска web (хаб молчит) — не расхождение: один повтор; молчит и тогда — сообщаем
+  let cold = new Set();
+  const flaky = async (url) => (url.includes("/api/timeline") && !cold.has(url) ? (cold.add(url), { code: 0, type: "aborted" }) : ask([])(url));
+  const warmed = await checkCalls("http://127.0.0.1:9", contract, v1, snap, flaky, 0);
+  assert.deepEqual(warmed.filter((p) => p.includes("молчанием")), []);
+  assert.ok(cold.size > 0);
+  const dead = async (url) => (url.includes("/api/timeline") ? { code: 0, type: "aborted" } : ask([])(url));
+  assert.ok((await checkCalls("http://127.0.0.1:9", contract, v1, snap, dead, 0)).some((p) => p.includes("молчанием")));
   const bad = await checkCalls("http://127.0.0.1:9", contract, v1, snap, ask(["/api/flow", "/api/files"]));
   assert.deepEqual(bad.filter((p) => p.startsWith("запрос клиента")),
                    ["запрос клиента GET /api/flow: хаб отвечает 404", "запрос клиента GET /api/flow/history: хаб отвечает 404"]);
