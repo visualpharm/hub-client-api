@@ -7,6 +7,9 @@
 // 2) живые ленты сессий — правила не теряют строк, ответов и файлов; словами владельца показано только пришедшее
 // его каналами; 3) с --journal — по журналу хаба: каждое слово владельца за --hours есть в ленте его словами, и ни
 // одно чужое сообщение (ядро, плагины, расписание, сессии) не показано его словами.
+// 4) каждый вызов клиентов: запросы договора и то, что просят страницы разделов внутри приложений (поток страницы,
+// модули плагинов, их запросы данных) — отвечает ли живой хаб; с --core <папка> (можно несколько: новый и прежний
+// код хаба) — есть ли пути в коде.
 // Норма — молчит, код 0. Расхождение — список в вывод, код 1; с --tell команда получает его аргументом, один раз
 // на одно и то же расхождение (--state помнит, о чём уже сказано).
 import { execFileSync } from "node:child_process";
@@ -14,7 +17,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadRules } from "./check.mjs";
+import { checkCore, loadRules } from "./check.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const OWNER_CHANNELS = ["web", "cli", "telegram"];
@@ -104,6 +107,57 @@ export function checkJournal(messages, lines, states = {}) {
   return out;
 }
 
+/** Отвечает ли адрес: код и тип; поток — только заголовки (тело не ждём). */
+async function probe(url) {
+  const stop = new AbortController(), timer = setTimeout(() => stop.abort(), 8000);
+  try {
+    const r = await fetch(url, { headers: { "X-Hub": "1", "X-Hub-Api": "1" }, signal: stop.signal });
+    // 404 бывает и у живого пути («нет такой сессии»): пути нет — только когда хаб так и говорит
+    const lost = r.status === 404 ? (await r.text()).includes("нет такой страницы") : false;
+    return { code: r.status, type: r.headers.get("content-type") || "", lost };
+  } catch (e) {
+    return { code: 0, type: String(e.message) };
+  } finally {
+    clearTimeout(timer); stop.abort();
+  }
+}
+
+/** Каждый вызов клиентов против живого хаба: запросы договора (после правила request) и то, что просят страницы
+ *  разделов, открытые внутри приложений (страница хаба, её поток, модули плагинов и их запросы данных). */
+export async function checkCalls(base, contract, rules, snap, ask = probe) {
+  const out = [];
+  const hub = ((snap.sessions || []).find((s) => s.kind === "hub") || {}).name || "";
+  for (const r of contract.requests.filter((r) => r.method === "GET" && (r.stream || r.probe !== undefined))) {
+    const query = Object.fromEntries(new URLSearchParams((r.probe || "").replace("{hub}", hub)));
+    const to = rules.request({ method: "GET", path: r.path, query });
+    const qs = new URLSearchParams(to.query || {}).toString();
+    const got = await ask(`${base}${to.path}${qs ? "?" + qs : ""}`);
+    if (got.code === 404 && r.optional) continue;
+    if (got.code !== 200) out.push(`запрос клиента GET ${r.path}: хаб отвечает ${got.code || "молчанием"}`);
+    else if (r.stream && !got.type.includes("text/event-stream")) out.push(`запрос клиента GET ${r.path}: не поток событий (${got.type})`);
+  }
+  // страницы разделов: поток страницы и запросы данных модулей — тем же адресом, каким их зовёт страница
+  const page = await ask(`${base}/`);
+  if (page.code !== 200) out.push(`страница хаба: ${page.code || "молчит"}`);
+  const sources = [["страница", "/static/js/api.js"], ...(snap.extensions || []).filter((e) => e.main).map((e) => [`раздел ${e.name}`, `/ext/${e.name}/${e.main}`])];
+  for (const [who, file] of sources) {
+    let src = "";
+    try { src = await get(`${base}${file}`, true); } catch (e) { out.push(`${who}: файл ${file} не отдаётся (${e.message})`); continue; }
+    for (const m of src.matchAll(/new EventSource\(\s*["'`]([^"'`]+)["'`]/g)) {
+      const got = await ask(`${base}${m[1]}`);
+      if (got.code !== 200 || !got.type.includes("text/event-stream")) out.push(`${who}: поток ${m[1]} — хаб отвечает ${got.code || "молчанием"}: страница покажет «нет связи»`);
+    }
+    // адрес — как в исходнике, с параметрами; подстановки ${…} — нулём: путь должен найтись, данные не важны
+    const urls = new Set([...src.matchAll(/fetch\(\s*["'`](\/api\/[^"'`]+)["'`]/g)].map((m) => m[1].replace(/\$\{[^}]*\}/g, "0")));
+    for (const url of urls) {
+      const m = [null, url];
+      const got = await ask(`${base}${url}`);
+      if (got.lost || got.code === 0 || got.code >= 500) out.push(`${who}: запрос ${m[1]} — хаб отвечает ${got.code || "молчанием"}`);
+    }
+  }
+  return out;
+}
+
 async function get(url, text = false) {
   const r = await fetch(url, { headers: { "X-Hub": "1", "X-Hub-Api": "1" } });
   if (!r.ok) throw new Error(`${url}: ${r.status}`);
@@ -139,6 +193,11 @@ async function main(argv) {
       const adapted = rules.timeline(structuredClone(raw));
       lines[s.name] = adapted.items || [];
       problems.push(...checkLive(s.name, raw, adapted));
+    }
+    const contract = JSON.parse(fs.readFileSync(path.join(here, "..", "contract", "v1.json"), "utf8"));
+    problems.push(...await checkCalls(base, contract, rules, view));
+    for (const dir of argv.flatMap((a, i) => (a === "--core" ? [argv[i + 1]] : []))) {
+      problems.push(...checkCore(contract, rules, dir).map((p) => `код хаба ${dir}: ${p}`));
     }
     if (arg("--journal")) {
       problems.push(...checkJournal(journalMessages(arg("--journal"), Number(arg("--hours") || 6)), lines, view.messages || {}));

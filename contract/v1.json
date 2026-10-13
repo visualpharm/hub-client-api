@@ -1,61 +1,357 @@
 {
   "api": 1,
-  "about": "Что клиент версии 1 читает у хаба и что шлёт. «!» у типа или имени — поле обязано быть; без него — может не быть или быть null, но если есть, то этого типа. «*» — любой ключ. Хаб может добавлять поля и виды строк: клиент их не замечает.",
+  "about": "Что клиент версии 1 читает у хаба и что шлёт. «!» у типа или имени — поле обязано быть; без него — может не быть или быть null, но если есть, то этого типа. «*» — любой ключ. Хаб может добавлять поля и виды строк: клиент их не замечает. В requests: probe — параметры безопасной живой пробы GET; optional — есть не на каждом хабе (клиент прячет по features); stream — поток событий.",
   "snapshot": {
     "seq": "number!",
     "epoch": "string!",
-    "timeline_rev": {"*": "number"},
-    "sessions!": [{
-      "name": "string!", "state": "string!", "kind": "string", "role": "string", "since": "number",
-      "model": "string", "about": "string", "raised_by": "string", "backlog": "any",
-      "pending": [{"request_id": "string!", "tool": "string!", "input": "object"}],
-      "recap": {"text": "string", "ts": "number"},
-      "todos": [{"status": "string", "content": "string", "activeForm": "string"}],
-      "waiting": {"text": "string"},
-      "away": {"text": "string"}
-    }],
-    "messages": {"*": {"state": "string", "removable": "boolean"}},
-    "schedule": [{
-      "id": "string!", "state": "string!", "session": "string", "when": "string", "next": "number",
-      "prompt": "string", "command": "string", "paused_why": "string", "runs": "number"
-    }],
-    "limits": {"windows": {"*": {"used": "number", "resets": "number"}}},
-    "extensions": [{"name": "string!", "main": "string"}],
-    "launchers": ["string"],
-    "directions": ["string"],
-    "model_names": {"*": "string"},
-    "features": ["string"],
-    "owner": {"lang": "string"},
+    "timeline_rev": {
+      "*": "number"
+    },
+    "sessions!": [
+      {
+        "name": "string!",
+        "state": "string!",
+        "kind": "string",
+        "role": "string",
+        "since": "number",
+        "model": "string",
+        "about": "string",
+        "raised_by": "string",
+        "backlog": "any",
+        "pending": [
+          {
+            "request_id": "string!",
+            "tool": "string!",
+            "input": "object"
+          }
+        ],
+        "recap": {
+          "text": "string",
+          "ts": "number"
+        },
+        "todos": [
+          {
+            "status": "string",
+            "content": "string",
+            "activeForm": "string"
+          }
+        ],
+        "waiting": {
+          "text": "string"
+        },
+        "away": {
+          "text": "string"
+        }
+      }
+    ],
+    "messages": {
+      "*": {
+        "state": "string",
+        "removable": "boolean"
+      }
+    },
+    "schedule": [
+      {
+        "id": "string!",
+        "state": "string!",
+        "session": "string",
+        "when": "string",
+        "next": "number",
+        "prompt": "string",
+        "command": "string",
+        "paused_why": "string",
+        "runs": "number"
+      }
+    ],
+    "limits": {
+      "windows": {
+        "*": {
+          "used": "number",
+          "resets": "number"
+        }
+      }
+    },
+    "extensions": [
+      {
+        "name": "string!",
+        "main": "string"
+      }
+    ],
+    "launchers": [
+      "string"
+    ],
+    "directions": [
+      "string"
+    ],
+    "model_names": {
+      "*": "string"
+    },
+    "features": [
+      "string"
+    ],
+    "owner": {
+      "lang": "string"
+    },
     "voice": "any"
   },
   "timeline": {
     "epoch": "string!",
     "rev": "number!",
     "full": "boolean",
-    "items!": [{"k": "number!", "kind": "string!", "seq": "number", "ts": "number"}]
+    "items!": [
+      {
+        "k": "number!",
+        "kind": "string!",
+        "seq": "number",
+        "ts": "number"
+      }
+    ]
   },
   "kinds": {
-    "in": {"id": "string!", "text": "string", "sender": "string",
-           "attachments": [{"path": "string", "name": "string", "mime": "string"}]},
-    "out": {"text": "string", "error": "any"},
-    "reply": {"from": "string", "text": "string"},
-    "file": {"name": "string", "path": "string!", "image": "boolean", "caption": "string"},
-    "ask": {"request_id": "string!", "tool": "string", "input": "object"},
-    "answer": {"request_id": "string!", "answers": "object", "behavior": "string"},
-    "gone": {"request_id": "string"},
-    "tool": {"name": "string", "input": "object", "parent": "any"}
+    "in": {
+      "id": "string!",
+      "text": "string",
+      "sender": "string",
+      "attachments": [
+        {
+          "path": "string",
+          "name": "string",
+          "mime": "string"
+        }
+      ]
+    },
+    "out": {
+      "text": "string",
+      "error": "any"
+    },
+    "reply": {
+      "from": "string",
+      "text": "string"
+    },
+    "file": {
+      "name": "string",
+      "path": "string!",
+      "image": "boolean",
+      "caption": "string"
+    },
+    "ask": {
+      "request_id": "string!",
+      "tool": "string",
+      "input": "object"
+    },
+    "answer": {
+      "request_id": "string!",
+      "answers": "object",
+      "behavior": "string"
+    },
+    "gone": {
+      "request_id": "string"
+    },
+    "tool": {
+      "name": "string",
+      "input": "object",
+      "parent": "any"
+    }
   },
   "requests": [
-    {"method": "GET", "path": "/api/stream"},
-    {"method": "GET", "path": "/api/timeline", "query": ["session", "since", "epoch"]},
-    {"method": "GET", "path": "/api/file", "query": ["path"]},
-    {"method": "POST", "path": "/api/send", "body": ["session", "text", "attachments", "quote", "correction"]},
-    {"method": "POST", "path": "/api/upload", "body": ["name", "mime", "data"]},
-    {"method": "POST", "path": "/api/answer", "body": ["session", "request_id", "answers"]},
-    {"method": "POST", "path": "/api/permission", "body": ["session", "request_id", "behavior"]},
-    {"method": "POST", "path": "/api/queue/cancel", "body": ["session", "id"]},
-    {"method": "POST", "path": "/api/session/model", "body": ["session", "model"]},
-    {"method": "POST", "path": "/api/schedule/remove", "body": ["id"]},
-    {"method": "POST", "path": "/api/push/register", "body": ["token", "env"], "feature": "push"}
+    {
+      "method": "GET",
+      "path": "/api/stream",
+      "stream": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/timeline",
+      "query": [
+        "session",
+        "since",
+        "epoch"
+      ],
+      "probe": "session={hub}&since=0&epoch="
+    },
+    {
+      "method": "GET",
+      "path": "/api/file",
+      "query": [
+        "path"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/send",
+      "body": [
+        "session",
+        "text",
+        "attachments",
+        "quote",
+        "correction"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/upload",
+      "body": [
+        "name",
+        "mime",
+        "data"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/answer",
+      "body": [
+        "session",
+        "request_id",
+        "answers"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/permission",
+      "body": [
+        "session",
+        "request_id",
+        "behavior"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/queue/cancel",
+      "body": [
+        "session",
+        "id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/session/model",
+      "body": [
+        "session",
+        "model"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/schedule/remove",
+      "body": [
+        "id"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/push/register",
+      "body": [
+        "token",
+        "env"
+      ],
+      "feature": "push"
+    },
+    {
+      "method": "GET",
+      "path": "/api/about",
+      "probe": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/snapshot",
+      "probe": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/history",
+      "query": [
+        "session",
+        "before"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/flow",
+      "query": [
+        "since"
+      ],
+      "probe": "since=0"
+    },
+    {
+      "method": "GET",
+      "path": "/api/flow/history",
+      "query": [
+        "hours"
+      ],
+      "probe": "hours=1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/feed",
+      "query": [
+        "plugin",
+        "since"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/feed/post"
+    },
+    {
+      "method": "POST",
+      "path": "/api/inject"
+    },
+    {
+      "method": "POST",
+      "path": "/api/seen"
+    },
+    {
+      "method": "POST",
+      "path": "/api/session/close"
+    },
+    {
+      "method": "POST",
+      "path": "/api/session/effort"
+    },
+    {
+      "method": "POST",
+      "path": "/api/voice"
+    },
+    {
+      "method": "GET",
+      "path": "/api/files",
+      "optional": true,
+      "probe": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/linkpreview",
+      "optional": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/voice/stream",
+      "optional": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/voice/redo",
+      "optional": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/mnemonic",
+      "optional": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/react",
+      "optional": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/visual",
+      "optional": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/upload/raw",
+      "optional": true
+    }
   ]
 }

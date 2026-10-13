@@ -73,7 +73,7 @@ test("v1: поле correction клиента до хаба не доходит, 
 });
 
 // ---- чьё сообщение: tools/watch.mjs и правило timeline ----
-import { checkJournal, checkLive, checkReference, ownerRows } from "../tools/watch.mjs";
+import { checkCalls, checkJournal, checkLive, checkReference, ownerRows } from "../tools/watch.mjs";
 
 const ref = JSON.parse(fs.readFileSync(path.join(root, "tests", "reference", "hub.json"), "utf8"));
 const none = { api: 1, rev: 0, snapshot: (x) => x, timeline: (x) => x, request: (x) => x };
@@ -119,4 +119,21 @@ test("журнал против ленты: слово владельца на �
   // старше ленты или снято — не расхождение
   assert.deepEqual(checkJournal([{ id: "m0", session: "hub", owner: true, channel: "web" }], { hub: items }, { m0: {} }), []);
   assert.deepEqual(checkJournal([{ id: "m12", session: "hub", owner: true, channel: "web" }], { hub: items }, { m12: { state: "cancelled" } }), []);
+});
+
+test("вызовы клиентов: хаб не отвечает на запрос договора — расхождение; необязательное на этом хабе — нет", async () => {
+  const snap = { sessions: [{ name: "hub", kind: "hub" }], extensions: [] };
+  const seen = [];
+  const ask = (dead) => async (url) => {
+    seen.push(url);
+    const p = new URL(url).pathname + new URL(url).search;
+    if (dead.some((d) => p.startsWith(d))) return { code: 404, type: "application/json" };
+    return { code: 200, type: p.startsWith("/api/stream") ? "text/event-stream" : "application/json" };
+  };
+  const quiet = await checkCalls("http://127.0.0.1:9", contract, v1, snap, ask([]));
+  assert.deepEqual(quiet.filter((p) => p.startsWith("запрос клиента")), []);
+  assert.ok(seen.includes("http://127.0.0.1:9/api/timeline?session=hub&since=0&epoch="));
+  const bad = await checkCalls("http://127.0.0.1:9", contract, v1, snap, ask(["/api/flow", "/api/files"]));
+  assert.deepEqual(bad.filter((p) => p.startsWith("запрос клиента")),
+                   ["запрос клиента GET /api/flow: хаб отвечает 404", "запрос клиента GET /api/flow/history: хаб отвечает 404"]);
 });

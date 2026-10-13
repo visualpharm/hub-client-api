@@ -81,7 +81,7 @@ export function checkCore(contract, rules, dir) {
   for (const r of contract.requests) {
     const body = r.body ? Object.fromEntries(r.body.map((k) => [k, ""])) : undefined;
     const to = rules.request({ method: r.method, path: r.path, query: {}, body });
-    if (!code.includes(`"${to.path}`)) out.push(`${r.method} ${r.path}: в коде хаба нет пути ${to.path}`);
+    if (!code.includes(`"${to.path}`) && !r.optional) out.push(`${r.method} ${r.path}: в коде хаба нет пути ${to.path}`);
   }
   return out;
 }
