@@ -73,7 +73,7 @@ export function checkTimeline(contract, rules, answer) {
   return out.concat(...seen);
 }
 
-/** Пути запросов клиента (после правила request) — есть ли они в коде хаба. */
+/** Пути и поля запросов клиента (после правила request) — есть ли они в коде хаба. */
 export function checkCore(contract, rules, dir) {
   const web = path.join(dir, "modules", "web");
   const code = fs.readdirSync(web).filter((f) => f.endsWith(".py")).map((f) => fs.readFileSync(path.join(web, f), "utf8")).join("\n");
@@ -82,6 +82,8 @@ export function checkCore(contract, rules, dir) {
     const body = r.body ? Object.fromEntries(r.body.map((k) => [k, ""])) : undefined;
     const to = rules.request({ method: r.method, path: r.path, query: {}, body });
     if (!code.includes(`"${to.path}`) && !r.optional) out.push(`${r.method} ${r.path}: в коде хаба нет пути ${to.path}`);
+    // поля тела: хаб может не брать поле из договора в работу (card, client_id) — сверка назовёт
+    if (r.body) for (const k of r.body) if (!code.includes(k)) out.push(`${r.method} ${r.path}: в коде хаба нет поля ${k}`);
   }
   return out;
 }

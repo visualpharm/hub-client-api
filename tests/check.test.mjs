@@ -19,6 +19,7 @@ const snapshot = () => ({
   schedule: [{ id: "j1", state: "active", next: 100, prompt: "Проверь почту" }],
   limits: { windows: { five_hour: { used: 0.4, resets: 200 } } },
   extensions: [{ name: "flow", main: "main.js" }], features: ["push"], owner: { lang: "ru" },
+  reactions: { taken: {} },   // taken — всегда, даже без модуля «Реакции»
 });
 const timeline = () => ({
   epoch: "e1", rev: 3, full: true,
@@ -70,6 +71,39 @@ test("v1: поле correction клиента до хаба не доходит, 
   const answer = { method: "POST", path: "/api/answer", query: {}, body: { session: "hub", request_id: "r1", answers: {} } };
   assert.deepEqual(v1.request(answer), answer);
   assert.equal(v1.api, 1);
+});
+
+test("v1: card и client_id в /api/send доходят до хаба как есть — ответ на карточку и идемпотентность", () => {
+  const send = { method: "POST", path: "/api/send", query: {},
+                 body: { session: "hub", text: "Два.", card: "q12", client_id: "c47b8f2a-1_" } };
+  assert.deepEqual(v1.request(send), send);
+});
+
+test("reactions: taken — всегда, даже с выключенным модулем; badges и значок сообщения — с включённым", () => {
+  // модуль выключен (features без «reactions»): значков нет, taken остаётся — свёртка отвеченного не модуль (14.10)
+  const off = snapshot();
+  off.reactions = { taken: { hub: 12 } };
+  assert.deepEqual(checkSnapshot(contract, v1, off), []);
+  // хаб забрал taken вместе с модулем — нарушение договора, сверка называет
+  const emptied = snapshot();
+  emptied.reactions = {};
+  assert.deepEqual(checkSnapshot(contract, v1, emptied), ["snapshot.reactions.taken: нет поля"]);
+  const gone = snapshot();
+  delete gone.reactions;
+  assert.deepEqual(checkSnapshot(contract, v1, gone), ["snapshot.reactions: нет поля"]);
+  const typed = snapshot();
+  typed.reactions = { taken: { hub: "12" } };
+  assert.deepEqual(checkSnapshot(contract, v1, typed), ["snapshot.reactions.taken.*: string вместо number"]);
+  // модуль включён: значки ленты (badges, прежние места — ключ-номер события и messages[].reaction) на месте
+  const on = snapshot();
+  on.features = ["push", "reactions"];
+  on.reactions = { "218545": "👍", badges: { m1: "👍" }, taken: { hub: 12 } };
+  on.messages = { m1: { state: "queued", removable: true, reaction: "👍" } };
+  assert.deepEqual(checkSnapshot(contract, v1, on), []);
+  const badgeTyped = snapshot();
+  badgeTyped.features = ["reactions"];
+  badgeTyped.reactions = { badges: { m1: 7 }, taken: {} };
+  assert.deepEqual(checkSnapshot(contract, v1, badgeTyped), ["snapshot.reactions.badges.*: number вместо string"]);
 });
 
 // ---- чьё сообщение: tools/watch.mjs и правило timeline ----

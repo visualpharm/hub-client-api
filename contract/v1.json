@@ -1,6 +1,6 @@
 {
   "api": 1,
-  "about": "Что клиент версии 1 читает у хаба и что шлёт. «!» у типа или имени — поле обязано быть; без него — может не быть или быть null, но если есть, то этого типа. «*» — любой ключ. Хаб может добавлять поля и виды строк: клиент их не замечает. В requests: probe — параметры безопасной живой пробы GET; optional — есть не на каждом хабе (клиент прячет по features); stream — поток событий.",
+  "about": "Что клиент версии 1 читает у хаба и что шлёт. «!» у типа или имени — поле обязано быть; без него — может не быть или быть null, но если есть, то этого типа. «*» — любой ключ. Хаб может добавлять поля и виды строк: клиент их не замечает. В requests: probe — параметры безопасной живой пробы GET; optional — есть не на каждом хабе (клиент прячет по features); stream — поток событий. reactions.taken — всегда, и когда модуль «Реакции» выключен: свёртка отвеченного — не модуль. В /api/send: client_id — идемпотентность (повтор POST — одного сообщения), card — ответ на карточку вопроса qN.",
   "snapshot": {
     "seq": "number!",
     "epoch": "string!",
@@ -47,7 +47,16 @@
     "messages": {
       "*": {
         "state": "string",
-        "removable": "boolean"
+        "removable": "boolean",
+        "reaction": "string"
+      }
+    },
+    "reactions!": {
+      "taken!": {
+        "*": "number"
+      },
+      "badges": {
+        "*": "string"
       }
     },
     "schedule": [
@@ -184,7 +193,9 @@
         "text",
         "attachments",
         "quote",
-        "correction"
+        "correction",
+        "card",
+        "client_id"
       ]
     },
     {
@@ -341,7 +352,12 @@
     {
       "method": "POST",
       "path": "/api/react",
-      "optional": true
+      "body": [
+        "target",
+        "emoji"
+      ],
+      "optional": true,
+      "feature": "reactions"
     },
     {
       "method": "GET",
