@@ -114,8 +114,8 @@ export function checkJournal(messages, lines, states = {}) {
 }
 
 /** Отвечает ли адрес: код и тип; поток — только заголовки (тело не ждём). */
-async function probe(url) {
-  const stop = new AbortController(), timer = setTimeout(() => stop.abort(), 8000);
+async function probe(url, ms = 8000) {
+  const stop = new AbortController(), timer = setTimeout(() => stop.abort(), ms);
   try {
     const r = await fetch(url, { headers: { "X-Hub": "1", "X-Hub-Api": "1" }, signal: stop.signal });
     // 404 бывает и у живого пути («нет такой сессии»): пути нет — только когда хаб так и говорит
@@ -132,11 +132,12 @@ async function probe(url) {
  *  разделов, открытые внутри приложений (страница хаба, её поток, модули плагинов и их запросы данных). */
 /** Молчание хаба — ещё не расхождение: после перезапуска web первый запрос холодный (история потока — до 30 с), под
  *  нагрузкой ответ не укладывается в срок. Один повтор через паузу; молчит и тогда — сообщаем. */
+const RETRY_MS = 30000;   // повтор ждёт дольше: под нагрузкой машины (14.10, load ~250) живой хаб отвечал за 10–17 с
 export const patient = (ask, pause = 45000) => async (url) => {
   const got = await ask(url);
   if (got.code !== 0) return got;
   await new Promise((r) => setTimeout(r, pause));
-  return ask(url);
+  return ask(url, RETRY_MS);
 };
 
 export async function checkCalls(base, contract, rules, snap, ask0 = probe, pause = 45000) {

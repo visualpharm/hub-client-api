@@ -141,6 +141,9 @@ test("вызовы клиентов: хаб не отвечает на запр�
   const warmed = await checkCalls("http://127.0.0.1:9", contract, v1, snap, flaky, 0);
   assert.deepEqual(warmed.filter((p) => p.includes("молчанием")), []);
   assert.ok(cold.size > 0);
+  // под нагрузкой (load ~250) ответ дольше 8 с: повтор ждёт дольше первого запроса (RETRY_MS)
+  const slow = async (url, ms = 8000) => (url.includes("/api/timeline") && ms < 20000 ? { code: 0, type: "aborted" } : ask([])(url));
+  assert.deepEqual((await checkCalls("http://127.0.0.1:9", contract, v1, snap, slow, 0)).filter((p) => p.includes("молчанием")), []);
   const dead = async (url) => (url.includes("/api/timeline") ? { code: 0, type: "aborted" } : ask([])(url));
   assert.ok((await checkCalls("http://127.0.0.1:9", contract, v1, snap, dead, 0)).some((p) => p.includes("молчанием")));
   const bad = await checkCalls("http://127.0.0.1:9", contract, v1, snap, ask(["/api/flow", "/api/files"]));
