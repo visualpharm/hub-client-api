@@ -79,18 +79,25 @@ test("v1: card и client_id в /api/send доходят до хаба как е�
   assert.deepEqual(v1.request(send), send);
 });
 
-test("reactions: taken — всегда, даже с выключенным модулем; badges и значок сообщения — с включённым", () => {
+test("reactions: taken — всегда; правила подкладывают его хабам до модуля «Реакции»", () => {
   // модуль выключен (features без «reactions»): значков нет, taken остаётся — свёртка отвеченного не модуль (14.10)
   const off = snapshot();
   off.reactions = { taken: { hub: 12 } };
   assert.deepEqual(checkSnapshot(contract, v1, off), []);
-  // хаб забрал taken вместе с модулем — нарушение договора, сверка называет
+  // договор требует: без правил хаб без reactions/taken — расхождение, сверка называет
   const emptied = snapshot();
   emptied.reactions = {};
-  assert.deepEqual(checkSnapshot(contract, v1, emptied), ["snapshot.reactions.taken: нет поля"]);
+  assert.deepEqual(checkSnapshot(contract, none, emptied), ["snapshot.reactions.taken: нет поля"]);
   const gone = snapshot();
   delete gone.reactions;
-  assert.deepEqual(checkSnapshot(contract, v1, gone), ["snapshot.reactions: нет поля"]);
+  assert.deepEqual(checkSnapshot(contract, none, gone), ["snapshot.reactions: нет поля"]);
+  // хаб до модуля не слал reactions вовсе, ранний — значки без свёртки: правила подкладывают пустую свёртку
+  assert.deepEqual(v1.snapshot(gone).reactions, { taken: {} });
+  assert.deepEqual(checkSnapshot(contract, v1, gone), []);
+  const early = snapshot();
+  early.reactions = { badges: { m1: "👍" } };
+  assert.deepEqual(checkSnapshot(contract, v1, early), []);
+  // свой taken правило не трогает — неверный тип остаётся расхождением
   const typed = snapshot();
   typed.reactions = { taken: { hub: "12" } };
   assert.deepEqual(checkSnapshot(contract, v1, typed), ["snapshot.reactions.taken.*: string вместо number"]);
