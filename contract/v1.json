@@ -120,6 +120,7 @@
     "in": {
       "id": "string!",
       "text": "string",
+      "source_text": "string",
       "sender": "string",
       "attachments": [
         {
@@ -131,11 +132,13 @@
     },
     "out": {
       "text": "string",
+      "source_text": "string",
       "error": "any"
     },
     "reply": {
       "from": "string",
-      "text": "string"
+      "text": "string",
+      "source_text": "string"
     },
     "file": {
       "name": "string",

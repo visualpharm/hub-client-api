@@ -17,6 +17,67 @@
   const OWNER_CHANNELS = ["web", "cli", "telegram"];
   const SERVICE = { core: "ядро", plugin: "плагин", schedule: "Расписание", session: "сессия" };
 
+  // Только известная транспортная шапка отчёта. Не угадываем автора из её from и не меняем журнал/маршрутизацию.
+  // Незнакомое поле, неоднозначная шапка или пустой результат — показываем исходный текст целиком.
+  function reportBody(text) {
+    if (!/^request_id=/.test(text)) return null;
+    const lines = text.split(/\r?\n/), header = {};
+    let i = 0;
+    for (; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      if (/^result:[ \t]*\S/.test(lines[i])) break;
+      for (const part of lines[i].split(";")) {
+        const m = /^(request_id|from|to|status|in_reply_to)=[ \t]*([A-Za-z0-9_.:/-]*)$/.exec(part.trim());
+        if (!m || Object.prototype.hasOwnProperty.call(header, m[1])) return null;
+        header[m[1]] = m[2];
+      }
+    }
+    if (!header.request_id || !header.from || !header.to || i === lines.length) return null;
+    const statuses = { open: "Open", pending: "Pending", in_progress: "In progress", completed: "Completed",
+      done: "Done", blocked: "Blocked", failed: "Failed", ok: "OK" };
+    if (header.status && !Object.prototype.hasOwnProperty.call(statuses, header.status)) return null;
+    // Markdown/code in the body stays exact; only top-level report labels become reading anchors.
+    let fence = null;
+    const body = lines.slice(i).map((line, n) => {
+      const mark = /^ {0,3}(`{3,}|~{3,})/.exec(line);
+      if (mark) {
+        if (!fence) fence = mark[1];
+        else if (mark[1][0] === fence[0] && mark[1].length >= fence.length
+                 && line.slice(mark[0].length).trim() === "") fence = null;
+        return line;
+      }
+      if (fence) return line;
+      if (n === 0) return line.replace(/^result:[ \t]*/, "");
+      const section = line.replace(/^evidence:[ \t]*/, "**Evidence:** ")
+        .replace(/^follow-up:[ \t]*/, "**Next:** ");
+      return section !== line && lines[i + n - 1].trim() ? "\n" + section : section;
+    }).join("\n");
+    return header.status ? `**${statuses[header.status]}.**\n\n${body}` : body;
+  }
+
+  function paragraphs(text) {
+    // Уже оформленное, код, JSON и короткие реплики не трогаем. Длинная однострочная проза — только пробелы
+    // между предложениями в пустую строку; ни одного слова не переписываем, не сокращаем и не переставляем.
+    if (text.length < 400 || /[\r\n`]|\*\*|\]\(|^\s*(?:[\[{<#$>]|[-*+]\s|\d+[.)]\s)/.test(text.trim())) return text;
+    let start = 0;
+    return text.replace(/[.!?]([ \t]+)(?=[A-ZА-ЯЁ])/g, (match, space, at) => {
+      if (at - start < 160) return match;
+      start = at + match.length;
+      return match[0] + "\n\n";
+    });
+  }
+
+  function replyText(it) {
+    if (!it || typeof it.text !== "string") return it;
+    const reply = it.kind === "out" || it.kind === "reply"
+      || (it.kind === "in" && it.sender && ["session", "agent"].includes(it.channel));
+    if (!reply) return it;
+    const body = reportBody(it.text);
+    if (body === null && it.text.startsWith("request_id=")) return it;
+    const text = body === null ? paragraphs(it.text) : body;
+    return text === it.text ? it : { ...it, text, source_text: it.source_text || it.text };
+  }
+
   const rules = {
     // Хаб до модуля «Реакции» не слал reactions вовсе, ранние его выпуски — значки без свёртки; нынешний отдаёт
     // taken (до какого события у сессии отвечено) всегда, даже с выключенным модулем. Клиенты считают по нему
@@ -33,7 +94,7 @@
     // слова владельца — только строки из его каналов, без адресата.
     timeline(t) {
       if (!t || !Array.isArray(t.items)) return t;
-      const items = t.items.map((it) => {
+      const items = t.items.map(replyText).map((it) => {
         if (!it || it.kind !== "in" || it.sender) return it;
         if (it.to) return { ...it, sender: "hub" };
         if (it.channel && !OWNER_CHANNELS.includes(it.channel)) return { ...it, sender: SERVICE[it.channel] || it.channel };
@@ -53,5 +114,5 @@
     },
   };
 
-  root.HubClientAPI = { api: 1, rev: 3, ...rules };
+  root.HubClientAPI = { api: 1, rev: 4, ...rules };
 })(globalThis);
