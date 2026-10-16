@@ -73,8 +73,9 @@ export function journalMessages(file, hours, now = Date.now() / 1000) {
     const d = ev.data || {};
     if (ev.type === "session.stop_requested") stopped.set(ev.entity, ev.seq);
     if (ev.type !== "message.received" || ev.ts < now - hours * 3600) continue;
+    // silent: служебный запрос от имени владельца (ответ на снятую карточку) — ядро нарочно не кладёт его в ленту
     out.push({ id: `m${ev.seq}`, session: d.to, channel: d.channel || ev.src,
-               owner: d.owner === true && OWNER_CHANNELS.includes(d.channel), text: d.text });
+               owner: d.owner === true && d.silent !== true && OWNER_CHANNELS.includes(d.channel), text: d.text });
   }
   // исполнителя остановили позже — его очередь ядро отдало тому, кто поднял: слово владельца ушло в ленту другой сессии
   for (const m of out) m.rerouted = (stopped.get(m.session) || 0) > ev0(m);
