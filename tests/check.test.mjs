@@ -226,3 +226,14 @@ test("сниппеты и настройки: пути запросов — не
   delete s.settings[0].key;
   assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.settings[].key: нет поля (string)"]);
 });
+
+test("каталог моделей: tier необязателен (старое ядро без него — в виде договора); число в слое — да, текст — нет", () => {
+  const s = snapshot();
+  s.sessions[0].model_effective = "opus";
+  s.models = [{ id: "haiku", title: "Haiku 5.5", vendor: "anthropic", rank: 3, tier: 2 }, { id: "glm", title: "GLM 5.3", vendor: "zai", rank: 0 },
+              { id: "default", title: "Default", vendor: null, rank: 99 }];
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  s.models[0].tier = "2";
+  assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.models[].tier: string вместо number"]);
+  assert.deepEqual(v1.snapshot({ ...snapshot(), models: [{ id: "opus", tier: 6 }] }).models, [{ id: "opus", tier: 6 }]);   // правила поле не трогают
+});

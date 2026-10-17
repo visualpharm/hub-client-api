@@ -20,3 +20,10 @@ Decided: describe /api/snippets, the snippets.* settings keys and the snapshot.s
 modules/snippets because the hub page passes op fields through. v1.js rules and rev stay as they are: the hub already
 serves the contract shape, so no adaptation is needed and a hub without the feature is not a mismatch. Why: clients
 read one hub-wide snippet set; the contract names what they rely on. Undo: remove the entries; no data migration. By: agent.
+
+## 2026-10-17 · Model class (tier) in the contract without a rules release
+Decided: describe snapshot.models[] (id, title, vendor, rank, tier) and sessions[].model_effective in contract/v1.json,
+all optional. tier is an integer 2-8: the number of working LEDs a client draws for the session's model class
+(Haiku 2, Sonnet 4, Opus 6, Fable 8; other labs by analogue, chosen by the hub). v1.js rules and rev stay: the hub serves the
+shape, clients that do not know the field draw six. Why: Mac and iPhone read the class from the catalog by the session's
+model_effective; the contract names what they rely on. Undo: remove the entries; no data migration. By: agent.

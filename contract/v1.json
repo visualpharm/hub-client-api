@@ -15,6 +15,7 @@
         "role": "string",
         "since": "number",
         "model": "string",
+        "model_effective": "string",
         "about": "string",
         "raised_by": "string",
         "backlog": "any",
@@ -95,6 +96,15 @@
     "model_names": {
       "*": "string"
     },
+    "models": [
+      {
+        "id": "string!",
+        "title": "string",
+        "vendor": "string",
+        "rank": "number",
+        "tier": "number"
+      }
+    ],
     "features": [
       "string"
     ],
