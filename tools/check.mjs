@@ -73,10 +73,16 @@ export function checkTimeline(contract, rules, answer) {
   return out.concat(...seen);
 }
 
+/** Ответ необязательного адреса (answers в договоре): сниппеты хаба, который объявил feature `snippets`. */
+export function checkSnippets(contract, answer) {
+  return diff(answer, contract.answers.snippets, "snippets");
+}
+
 /** Пути и поля запросов клиента (после правила request) — есть ли они в коде хаба. */
 export function checkCore(contract, rules, dir) {
-  const web = path.join(dir, "modules", "web");
-  const code = fs.readdirSync(web).filter((f) => f.endsWith(".py")).map((f) => fs.readFileSync(path.join(web, f), "utf8")).join("\n");
+  // страница хаба и модули, чьи поля она передаёт дальше как есть (сниппеты разбирают op в своём модуле)
+  const code = ["web", "snippets"].map((m) => path.join(dir, "modules", m)).filter((d) => fs.existsSync(d))
+    .flatMap((d) => fs.readdirSync(d).filter((f) => f.endsWith(".py")).map((f) => fs.readFileSync(path.join(d, f), "utf8"))).join("\n");
   const out = [];
   for (const r of contract.requests) {
     const body = r.body ? Object.fromEntries(r.body.map((k) => [k, ""])) : undefined;
@@ -105,6 +111,9 @@ async function checkHub(contract, rules, base) {
     const req = rules.request({ method: "GET", path: "/api/timeline", query: { session: name, since: "0", epoch: "" } });
     const answer = await json(`${base}${req.path}?${new URLSearchParams(req.query)}`);
     checkTimeline(contract, rules, answer).forEach((p) => out.includes(p) || out.push(p));
+  }
+  if ((snap.features || []).includes("snippets")) {   // набор сниппетов — живой ответ, в виде договора
+    checkSnippets(contract, await json(`${base}/api/snippets?lang=en`)).forEach((p) => out.includes(p) || out.push(p));
   }
   return { out, note: `хаб ${snap.version || "?"}, сессий в сверке: ${names.length}` };
 }

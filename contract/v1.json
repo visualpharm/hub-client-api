@@ -1,6 +1,6 @@
 {
   "api": 1,
-  "about": "Что клиент версии 1 читает у хаба и что шлёт. «!» у типа или имени — поле обязано быть; без него — может не быть или быть null, но если есть, то этого типа. «*» — любой ключ. Хаб может добавлять поля и виды строк: клиент их не замечает. В requests: probe — параметры безопасной живой пробы GET; optional — есть не на каждом хабе (клиент прячет по features); stream — поток событий. reactions.taken — всегда, и когда модуль «Реакции» выключен: свёртка отвеченного — не модуль. В /api/send: client_id — идемпотентность (повтор POST — одного сообщения), card — ответ на карточку вопроса qN.",
+  "about": "Что клиент версии 1 читает у хаба и что шлёт. «!» у типа или имени — поле обязано быть; без него — может не быть или быть null, но если есть, то этого типа. «*» — любой ключ. Хаб может добавлять поля и виды строк: клиент их не замечает. В requests: probe — параметры безопасной живой пробы GET; optional — есть не на каждом хабе (клиент прячет по features); stream — поток событий. reactions.taken — всегда, и когда модуль «Реакции» выключен: свёртка отвеченного — не модуль. В /api/send: client_id — идемпотентность (повтор POST — одного сообщения), card — ответ на карточку вопроса qN. Сниппеты (feature snippets): GET /api/snippets?lang=ru|en → answers.snippets; POST — op add{title,text}, edit{id,title,text}, delete{id}, pin{id,pinned}, move{id,to}, ответ тот же; настройки разбора snippets.auto (bool) и snippets.count (0–5) — /api/settings/set {key,value}, строки в snapshot.settings.",
   "snapshot": {
     "seq": "number!",
     "epoch": "string!",
@@ -97,6 +97,17 @@
     },
     "features": [
       "string"
+    ],
+    "settings": [
+      {
+        "key": "string!",
+        "kind": "string",
+        "value": "any",
+        "group": "string",
+        "label": "string",
+        "min": "number",
+        "max": "number"
+      }
     ],
     "owner": {
       "lang": "string"
@@ -371,6 +382,61 @@
       "method": "POST",
       "path": "/api/upload/raw",
       "optional": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/snippets",
+      "query": [
+        "lang"
+      ],
+      "optional": true,
+      "feature": "snippets",
+      "probe": "lang=en"
+    },
+    {
+      "method": "POST",
+      "path": "/api/snippets",
+      "body": [
+        "op",
+        "lang",
+        "id",
+        "title",
+        "text",
+        "pinned",
+        "to"
+      ],
+      "optional": true,
+      "feature": "snippets"
+    },
+    {
+      "method": "POST",
+      "path": "/api/settings/set",
+      "body": [
+        "key",
+        "value"
+      ],
+      "optional": true,
+      "feature": "snippets"
     }
-  ]
+  ],
+  "answers": {
+    "about": "Ответы необязательных адресов, когда хаб их объявил (features): сверка проверяет их живой ответ.",
+    "snippets": {
+      "items!": [
+        {
+          "id": "string!",
+          "title": "string!",
+          "text": "string!",
+          "origin": "string!",
+          "pinned": "boolean!",
+          "added": "number"
+        }
+      ],
+      "auto!": {
+        "enabled": "boolean!",
+        "count": "number!",
+        "last_run": "number"
+      }
+    }
+  }
 }

@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkSnapshot, checkTimeline, loadRules } from "../tools/check.mjs";
+import { checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const contract = JSON.parse(fs.readFileSync(path.join(root, "contract", "v1.json"), "utf8"));
@@ -190,4 +190,39 @@ test("вызовы клиентов: хаб не отвечает на запр�
   const bad = await checkCalls("http://127.0.0.1:9", contract, v1, snap, ask(["/api/flow", "/api/files"]));
   assert.deepEqual(bad.filter((p) => p.startsWith("запрос клиента")),
                    ["запрос клиента GET /api/flow: хаб отвечает 404", "запрос клиента GET /api/flow/history: хаб отвечает 404"]);
+});
+
+test("сниппеты: ответ хаба — в виде договора; без обязательного поля сверка называет его", () => {
+  const set = () => ({
+    items: [{ id: "summary", title: "Сводка", text: "Сводка коротко", origin: "default", pinned: true, added: null },
+            { id: "a1", title: "Идея", text: "Запрос", origin: "auto", pinned: false, added: 5 }],
+    auto: { enabled: false, count: 2, last_run: null },
+    brand_new: 1,
+  });
+  assert.deepEqual(checkSnippets(contract, set()), []);
+  const bad = set();
+  delete bad.items[1].pinned;
+  delete bad.items[0].id;
+  delete bad.auto.count;
+  assert.deepEqual(checkSnippets(contract, bad), ["snippets.items[].id: нет поля (string)", "snippets.items[].pinned: нет поля (boolean)",
+                                                  "snippets.auto.count: нет поля (number)"]);
+  const none = set();
+  delete none.auto;
+  assert.deepEqual(checkSnippets(contract, none), ["snippets.auto: нет поля"]);
+});
+
+test("сниппеты и настройки: пути запросов — необязательные, привязаны к feature snippets; снимок со строками настроек проходит", () => {
+  for (const [method, path] of [["GET", "/api/snippets"], ["POST", "/api/snippets"], ["POST", "/api/settings/set"]]) {
+    const r = contract.requests.find((x) => x.method === method && x.path === path);
+    assert.ok(r, `${method} ${path} есть в договоре`);
+    assert.equal(r.optional, true);
+    assert.equal(r.feature, "snippets");
+  }
+  const s = { ...snapshot(), features: ["push", "snippets"],
+              settings: [{ key: "snippets.auto", kind: "bool", value: false, group: "Сниппеты", label: "x" },
+                         { key: "snippets.count", kind: "num", value: 2, group: "Сниппеты", min: 0, max: 5 }] };
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  s.settings[1].value = 2;
+  delete s.settings[0].key;
+  assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.settings[].key: нет поля (string)"]);
 });

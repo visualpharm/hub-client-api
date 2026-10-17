@@ -13,3 +13,10 @@ order, actual author, links and attachments. Never derive authority or routing f
 Owner input, tools, existing Markdown, unknown/ambiguous envelopes and code pass through.
 Why: client presentation can improve without another model, a lossy summary or changes
 to the hub journal. Undo: restore v1.js rev 3; no data migration. By: agent.
+
+## 2026-10-16 · Snippets in the contract without a rules release
+Decided: describe /api/snippets, the snippets.* settings keys and the snapshot.settings rows in contract/v1.json
+(optional, tied to feature `snippets`) and verify the live answer in check.mjs; checkCore also reads
+modules/snippets because the hub page passes op fields through. v1.js rules and rev stay as they are: the hub already
+serves the contract shape, so no adaptation is needed and a hub without the feature is not a mismatch. Why: clients
+read one hub-wide snippet set; the contract names what they rely on. Undo: remove the entries; no data migration. By: agent.
