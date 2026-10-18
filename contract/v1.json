@@ -81,6 +81,11 @@
         }
       }
     },
+    "economy": {
+      "on": "boolean!",
+      "level": "number",
+      "since": "number"
+    },
     "extensions": [
       {
         "name": "string!",
