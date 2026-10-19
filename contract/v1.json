@@ -179,6 +179,31 @@
         "opens": "number",
         "added_at": "number"
       }
+    ],
+    "todo": [
+      {
+        "id": "string!",
+        "kind": "string",
+        "session": "string",
+        "title": "string",
+        "since": "number",
+        "thread": [
+          "number"
+        ]
+      }
+    ],
+    "todo_done": [
+      {
+        "id": "string!",
+        "kind": "string",
+        "session": "string",
+        "title": "string",
+        "since": "number",
+        "thread": [
+          "number"
+        ],
+        "done_at": "number"
+      }
     ]
   },
   "timeline": {
