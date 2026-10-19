@@ -157,7 +157,7 @@ export async function checkCalls(base, contract, rules, snap, ask0 = probe, paus
   // страницы разделов: поток страницы и запросы данных модулей — тем же адресом, каким их зовёт страница
   const page = await ask(`${base}/`);
   if (page.code !== 200 || !page.type.includes("text/html")) out.push(`страница хаба: ${page.code || "молчит"} (${page.type})`);
-  const sources = [["страница", "/static/js/api.js"], ...(snap.extensions || []).filter((e) => e.main).map((e) => [`раздел ${e.name}`, `/ext/${e.name}/${e.main}`])];
+  const sources = [["страница", "/static/js/api.js"], ...(snap.extensions || []).filter((e) => e.main).map((e) => [`раздел ${e.name}`, e.name.startsWith("mod:") ? `/mod/${e.name.slice(4)}/web/${e.main}` : `/ext/${e.name}/${e.main}`])];
   for (const [who, file] of sources) {
     let src = "";
     const head = await ask(`${base}${file}`);
