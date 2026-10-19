@@ -237,3 +237,19 @@ test("каталог моделей: tier необязателен (старое
   assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.models[].tier: string вместо number"]);
   assert.deepEqual(v1.snapshot({ ...snapshot(), models: [{ id: "opus", tier: 6 }] }).models, [{ id: "opus", tier: 6 }]);   // правила поле не трогают
 });
+
+test("аккаунты расхода, hints_seen и новые пути: все необязательны; снимок без них и с ними проходит", () => {
+  for (const [path, feature] of [["/api/hints/seen", "hints"], ["/api/todo/undone", "todo.undone"]]) {
+    const r = contract.requests.find((x) => x.method === "POST" && x.path === path);
+    assert.ok(r, `${path} есть в договоре`);
+    assert.equal(r.optional, true);
+    assert.equal(r.feature, feature);
+  }
+  assert.deepEqual(checkSnapshot(contract, v1, snapshot()), []);
+  const s = { ...snapshot(), hints_seen: ["a"], accounts: { pool: [{ name: "x" }], on: true, switch_at: 0.95 },
+              account: { active: "x", seen: { x: { status: "allowed", provider: "claude", ts: 1, windows: { five_hour: { used: 0.3, unit: "fraction", resets: 5 } } } } } };
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  s.accounts.pool[0] = {};
+  s.hints_seen = [1];
+  assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.accounts.pool[].name: нет поля (string)", "snapshot.hints_seen[]: number вместо string"]);
+});

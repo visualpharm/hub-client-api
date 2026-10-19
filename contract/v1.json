@@ -77,9 +77,14 @@
       "windows": {
         "*": {
           "used": "number",
-          "resets": "number"
+          "unit": "string",
+          "resets": "number",
+          "pace": "number"
         }
-      }
+      },
+      "account": "string",
+      "provider": "string",
+      "ts": "number"
     },
     "economy": {
       "on": "boolean!",
@@ -127,7 +132,40 @@
     "owner": {
       "lang": "string"
     },
-    "voice": "any"
+    "voice": "any",
+    "account": {
+      "active": "string",
+      "since": "number",
+      "pinned": "boolean",
+      "seen": {
+        "*": {
+          "status": "string",
+          "type": "string",
+          "provider": "string",
+          "ts": "number",
+          "windows": {
+            "*": {
+              "used": "number",
+              "unit": "string",
+              "resets": "number",
+              "pace": "number"
+            }
+          }
+        }
+      }
+    },
+    "accounts": {
+      "pool": [
+        {
+          "name": "string!"
+        }
+      ],
+      "on": "boolean",
+      "switch_at": "number"
+    },
+    "hints_seen": [
+      "string"
+    ]
   },
   "timeline": {
     "epoch": "string!",
@@ -432,6 +470,24 @@
       ],
       "optional": true,
       "feature": "snippets"
+    },
+    {
+      "method": "POST",
+      "path": "/api/hints/seen",
+      "body": [
+        "id"
+      ],
+      "optional": true,
+      "feature": "hints"
+    },
+    {
+      "method": "POST",
+      "path": "/api/todo/undone",
+      "body": [
+        "id"
+      ],
+      "optional": true,
+      "feature": "todo.undone"
     }
   ],
   "answers": {
