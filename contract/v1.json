@@ -321,7 +321,8 @@
       "body": [
         "session",
         "request_id",
-        "answers"
+        "answers",
+        "notes"
       ]
     },
     {
@@ -330,7 +331,8 @@
       "body": [
         "session",
         "request_id",
-        "behavior"
+        "behavior",
+        "message"
       ]
     },
     {
