@@ -165,6 +165,20 @@
     },
     "hints_seen": [
       "string"
+    ],
+    "sidebar_hidden": [
+      "string"
+    ],
+    "space_bookmarks": [
+      {
+        "id": "string!",
+        "title": "string",
+        "url": "string!",
+        "icon": "string",
+        "opened_at": "number",
+        "opens": "number",
+        "added_at": "number"
+      }
     ]
   },
   "timeline": {
@@ -185,6 +199,7 @@
       "id": "string!",
       "text": "string",
       "source_text": "string",
+      "quote": "string",
       "sender": "string",
       "attachments": [
         {
@@ -201,6 +216,7 @@
     },
     "reply": {
       "from": "string",
+      "quote": "string",
       "text": "string",
       "source_text": "string"
     },
@@ -488,6 +504,44 @@
       ],
       "optional": true,
       "feature": "todo.undone"
+    },
+    {
+      "method": "POST",
+      "path": "/api/sidebar/hidden",
+      "body": [
+        "hidden"
+      ],
+      "optional": true,
+      "feature": "sidebar.hidden"
+    },
+    {
+      "method": "POST",
+      "path": "/api/space/bookmarks",
+      "body": [
+        "title",
+        "url",
+        "icon"
+      ],
+      "optional": true,
+      "feature": "space.bookmarks"
+    },
+    {
+      "method": "POST",
+      "path": "/api/space/bookmarks/remove",
+      "body": [
+        "id"
+      ],
+      "optional": true,
+      "feature": "space.bookmarks"
+    },
+    {
+      "method": "POST",
+      "path": "/api/space/open",
+      "body": [
+        "id"
+      ],
+      "optional": true,
+      "feature": "space.bookmarks"
     }
   ],
   "answers": {

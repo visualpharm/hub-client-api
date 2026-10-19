@@ -33,3 +33,11 @@ Decided: describe snapshot.account (active, since, pinned, seen[name] with windo
 snapshot.hints_seen, POST /api/hints/seen (feature `hints`, hubbahub-hints 7e2c76a) and POST /api/todo/undone (feature `todo.undone`,
 hubbahub-todo-own 5eecc35) in contract/v1.json, all optional. v1.js rules and rev stay: the live hub fork does not send the new fields yet.
 Why: hub-ios builds usage-account pages from account.seen + accounts.pool; clients read the shared hint state. Undo: remove the entries. By: agent.
+
+## 2026-10-19 · sidebar_hidden, space_bookmarks and quote in the contract without a rules release
+Decided: describe snapshot.sidebar_hidden + POST /api/sidebar/hidden (feature `sidebar.hidden`, hubbahub-sidebar ff36cfb), snapshot.space_bookmarks
++ POST /api/space/bookmarks, /remove, /open (feature `space.bookmarks`, hubbahub-space 0109a9c), and `quote` on timeline rows `in` and `reply`
+(core/views.py) in contract/v1.json, all optional. v1.js rules and rev stay. Why: native and web clients read these shared settings and the
+reply source; the contract names what they rely on. Undo: remove the entries. By: agent.
+
+Check tool: body fields of an optional request whose path is absent from the core code (module outside core) are not compared with the core; the live hub covers them.

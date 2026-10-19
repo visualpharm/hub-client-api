@@ -89,7 +89,8 @@ export function checkCore(contract, rules, dir) {
     const to = rules.request({ method: r.method, path: r.path, query: {}, body });
     if (!code.includes(`"${to.path}`) && !r.optional) out.push(`${r.method} ${r.path}: в коде хаба нет пути ${to.path}`);
     // поля тела: хаб может не брать поле из договора в работу (card, client_id) — сверка назовёт
-    if (r.body) for (const k of r.body) if (!code.includes(k)) out.push(`${r.method} ${r.path}: в коде хаба нет поля ${k}`);
+    // необязательный адрес из модуля вне ядра (sidebar, space) в этом коде не живёт — его поля сверяет живой хаб
+    if (r.body && !(r.optional && !code.includes(`"${to.path}`))) for (const k of r.body) if (!code.includes(k)) out.push(`${r.method} ${r.path}: в коде хаба нет поля ${k}`);
   }
   return out;
 }

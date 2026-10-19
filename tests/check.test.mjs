@@ -253,3 +253,26 @@ test("аккаунты расхода, hints_seen и новые пути: все
   s.hints_seen = [1];
   assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.accounts.pool[].name: нет поля (string)", "snapshot.hints_seen[]: number вместо string"]);
 });
+
+test("sidebar_hidden, space_bookmarks, quote у строки и их пути: необязательны; есть и нет — проходит", () => {
+  for (const [path, feature] of [["/api/sidebar/hidden", "sidebar.hidden"], ["/api/space/bookmarks", "space.bookmarks"],
+                                 ["/api/space/bookmarks/remove", "space.bookmarks"], ["/api/space/open", "space.bookmarks"]]) {
+    const r = contract.requests.find((x) => x.method === "POST" && x.path === path);
+    assert.ok(r, `${path} есть в договоре`);
+    assert.equal(r.optional, true);
+    assert.equal(r.feature, feature);
+  }
+  assert.deepEqual(checkSnapshot(contract, v1, snapshot()), []);
+  const s = { ...snapshot(), sidebar_hidden: ["files"],
+              space_bookmarks: [{ id: "b1", title: "Док", url: "https://x.y", icon: "doc", opened_at: 5, opens: 2, added_at: 1 }] };
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  s.sidebar_hidden = [1];
+  s.space_bookmarks[0] = { id: "b1", opens: "2" };
+  assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.sidebar_hidden[]: number вместо string",
+    "snapshot.space_bookmarks[].url: нет поля (string)", "snapshot.space_bookmarks[].opens: string вместо number"]);
+  const t = timeline();
+  t.items[0].quote = "цитата";
+  assert.deepEqual(checkTimeline(contract, v1, t), []);
+  t.items[0].quote = 5;
+  assert.deepEqual(checkTimeline(contract, v1, t), ["timeline.items[in].quote: number вместо string"]);
+});
