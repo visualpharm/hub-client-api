@@ -90,7 +90,7 @@ export function checkCore(contract, rules, dir) {
     if (!code.includes(`"${to.path}`) && !r.optional) out.push(`${r.method} ${r.path}: в коде хаба нет пути ${to.path}`);
     // поля тела: хаб может не брать поле из договора в работу (card, client_id) — сверка назовёт
     // необязательный адрес из модуля вне ядра (sidebar, space) в этом коде не живёт — его поля сверяет живой хаб
-    if (r.body && !(r.optional && !code.includes(`"${to.path}`))) for (const k of r.body) if (!code.includes(k)) out.push(`${r.method} ${r.path}: в коде хаба нет поля ${k}`);
+    if (r.body && !(r.optional && !code.includes(`"${to.path}`))) for (const k of r.body) if (!(r.absent && k in r.absent) && !code.includes(k)) out.push(`${r.method} ${r.path}: в коде хаба нет поля ${k}`);
   }
   return out;
 }

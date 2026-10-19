@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
+import { checkCore, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const contract = JSON.parse(fs.readFileSync(path.join(root, "contract", "v1.json"), "utf8"));
@@ -275,4 +275,14 @@ test("sidebar_hidden, space_bookmarks, quote у строки и их пути: �
   assert.deepEqual(checkTimeline(contract, v1, t), []);
   t.items[0].quote = 5;
   assert.deepEqual(checkTimeline(contract, v1, t), ["timeline.items[in].quote: number вместо string"]);
+});
+
+test("поле из absent — не дефект ядра без него (notes нет в flagman v1.1.3), остальные поля сверяются", () => {
+  const dir = fs.mkdtempSync(path.join(fs.mkdtempSync(path.join(process.env.TMPDIR || "/tmp", "core-")), ""));
+  fs.mkdirSync(path.join(dir, "modules", "web"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "modules", "web", "server.py"), 'P = ("/api/answer", "session", "request_id")\n');
+  const one = { ...contract, requests: contract.requests.filter((r) => r.path === "/api/answer") };
+  const out = checkCore(one, v1, dir);
+  assert.ok(!out.some((x) => x.includes("notes")), out.join("; "));
+  assert.ok(out.some((x) => x.includes("answers")), "обязательное поле answers по-прежнему сверяется");
 });
