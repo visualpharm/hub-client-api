@@ -79,10 +79,12 @@ export function checkSnippets(contract, answer) {
 }
 
 /** Пути и поля запросов клиента (после правила request) — есть ли они в коде хаба. */
+/** Код страницы хаба и модулей, чьи поля она передаёт дальше как есть (сниппеты разбирают op в своём модуле). */
+export const coreCode = (dir) => ["web", "snippets"].map((m) => path.join(dir, "modules", m)).filter((d) => fs.existsSync(d))
+  .flatMap((d) => fs.readdirSync(d).filter((f) => f.endsWith(".py")).map((f) => fs.readFileSync(path.join(d, f), "utf8"))).join("\n");
+
 export function checkCore(contract, rules, dir) {
-  // страница хаба и модули, чьи поля она передаёт дальше как есть (сниппеты разбирают op в своём модуле)
-  const code = ["web", "snippets"].map((m) => path.join(dir, "modules", m)).filter((d) => fs.existsSync(d))
-    .flatMap((d) => fs.readdirSync(d).filter((f) => f.endsWith(".py")).map((f) => fs.readFileSync(path.join(d, f), "utf8"))).join("\n");
+  const code = coreCode(dir);
   const out = [];
   for (const r of contract.requests) {
     const body = r.body ? Object.fromEntries(r.body.map((k) => [k, ""])) : undefined;

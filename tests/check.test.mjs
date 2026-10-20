@@ -114,7 +114,8 @@ test("reactions: taken — всегда; правила подкладывают
 });
 
 // ---- чьё сообщение: tools/watch.mjs и правило timeline ----
-import { checkCalls, checkJournal, checkLive, checkReference, ownerRows } from "../tools/watch.mjs";
+import { checkCalls, checkJournal, checkLive, checkReference, fetches, journalEvents, journalMessages, messagesOf, ownerRows, pageCalls } from "../tools/watch.mjs";
+import os from "node:os";
 
 const ref = JSON.parse(fs.readFileSync(path.join(root, "tests", "reference", "hub.json"), "utf8"));
 const none = { api: 1, rev: 0, snapshot: (x) => x, timeline: (x) => x, request: (x) => x };
@@ -148,7 +149,7 @@ test("журнал против ленты: слово владельца на �
   const journal = [
     { id: "m1", session: "hub", owner: true, channel: "web", text: "Сделай отчёт" },
     { id: "m6", session: "hub", owner: false, channel: "plugin", text: "Новые входящие" },
-    { id: "m9", session: "hub", owner: true, channel: "web", text: "Ответ на вопрос: Да" },
+    { id: "m9", session: "hub", owner: true, channel: "web", text: "Ответ на вопрос: Да", took: ["hub"] },
   ];
   const states = { m1: {}, m6: {}, m9: {}, m12: {} };
   assert.deepEqual(checkJournal(journal, { hub: items }, states), []);
@@ -285,4 +286,88 @@ test("поле из absent — не дефект ядра без него (notes
   const out = checkCore(one, v1, dir);
   assert.ok(!out.some((x) => x.includes("notes")), out.join("; "));
   assert.ok(out.some((x) => x.includes("answers")), "обязательное поле answers по-прежнему сверяется");
+});
+
+// ---- доставка по журналу: ядро отдало слово другой сессии, ротация журнала, настоящая потеря ----
+const ev = (seq, type, entity, data, ts = 1792484000 + seq / 1000) => ({ seq, ts, src: "core", type, entity, data });
+const said = (seq, to, extra = {}) => ev(seq, "message.received", null, { to, text: "слово " + seq, channel: "web", owner: true, ...extra });
+
+test("журнал: слово спящему исполнителю ядро отдало тому, кто его поднял — не расхождение (m607245, m611723)", () => {
+  const events = [
+    said(607245, "inbox-wa-group-tour"),
+    ev(607246, "host.done", "hub-dev", { do: "type", message: "m607245", attempt: 1, result: "sent" }),
+    ev(607247, "turn.started", "hub-dev", { marker: "m607245" }),
+    said(611723, "procurement", { quote: "Открой чат", todo: "t:1" }),
+    ev(611724, "host.done", "hub-core", { do: "type", message: "m611723", attempt: 1, result: "sent" }),
+    ev(611726, "turn.started", "hub-core", { marker: "m611723" }),
+  ];
+  const msgs = messagesOf(events);
+  assert.deepEqual(msgs.map((m) => [m.id, m.took]), [["m607245", ["hub-dev"]], ["m611723", ["hub-core"]]]);
+  // ленты адресатов доходят до этих сообщений, но их там нет — ядро показало слово у другой сессии
+  const lines = { "inbox-wa-group-tour": [{ kind: "out", seq: 600000 }], procurement: [{ kind: "out", seq: 600000 }],
+                  "hub-dev": [], "hub-core": [] };
+  const states = { m607245: { state: "delivered" }, m611723: { state: "delivered" } };
+  assert.deepEqual(checkJournal(msgs, lines, states), []);
+});
+
+test("журнал: настоящая потеря — принято, никому не отдано и нет в ленте; доставлено адресату, а в ленте нет", () => {
+  const events = [
+    said(700001, "procurement"),                                         // принято и потеряно
+    said(700002, "procurement"),                                         // ещё в очереди спящей сессии
+    said(700003, "procurement"),                                         // ход его взял, лента его потеряла
+    ev(700004, "turn.started", "procurement", { marker: "m700099", also: ["m700003"] }),
+    said(700005, "procurement"),                                         // ход взял и лента показывает
+    ev(700006, "turn.started", "procurement", { marker: "m700005" }),
+  ];
+  const lines = { procurement: [{ kind: "out", seq: 690000 }, { kind: "in", id: "m700005", seq: 700005 }] };
+  const states = { m700001: { state: "failed" }, m700002: { state: "queued" }, m700003: { state: "delivered" }, m700005: { state: "delivered" } };
+  const out = checkJournal(messagesOf(events), lines, states);
+  assert.equal(out.length, 2);
+  assert.match(out[0], /procurement: слово владельца m700001 принято ядром, но не доставлено \(failed\) и нет в ленте/);
+  assert.match(out[1], /procurement: слова владельца m700003 нет в ленте/);
+});
+
+test("журнал после ротации: ход с маркером остался только в архиве — доставка находится", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "watch-journal-"));
+  fs.mkdirSync(path.join(dir, "journal-archive"));
+  const now = 1792490000;
+  const line = (e) => JSON.stringify(e) + "\n";
+  // архив: всё до ротации; журнал: выборка прежних событий (слово осталось, ход — нет) и новое после ротации
+  fs.writeFileSync(path.join(dir, "journal-archive", "journal-1-607300.jsonl"),
+    [ev(1, "core.snapshot", null, {}, now - 90000), said(607245, "inbox-wa-group-tour"), ev(607247, "turn.started", "hub-dev", { marker: "m607245" })]
+      .map((e) => line({ ...e, ts: e.seq === 1 ? e.ts : now - 7000 + e.seq / 1e6 })).join(""));
+  fs.writeFileSync(path.join(dir, "journal.jsonl"),
+    [ev(1, "core.snapshot", null, {}, now - 90000), { ...said(607245, "inbox-wa-group-tour"), ts: now - 7000 },
+     ev(607301, "core.snapshot", null, { why: "rotate" }, now - 3000), { ...said(607400, "hub"), ts: now - 100 }].map(line).join(""));
+  const msgs = journalMessages(path.join(dir, "journal.jsonl"), 3, now);
+  assert.deepEqual(msgs.map((m) => [m.id, m.took]), [["m607245", ["hub-dev"]], ["m607400", []]]);
+  // мелкие куски чтения: строки на стыке кусков не теряются
+  for (const f of [path.join(dir, "journal.jsonl"), path.join(dir, "journal-archive", "journal-1-607300.jsonl")]) {
+    assert.deepEqual(journalEvents(f, now - 3 * 3600, 37), journalEvents(f, now - 3 * 3600));
+  }
+  fs.rmSync(dir, { recursive: true });
+});
+
+test("запросы страницы: POST не пробуется GET-ом — путь ищется в коде хаба; без --core не судим", () => {
+  const src = `post("/api/x"); fetch("/api/hold", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tab }) }); fetch(\`/api/flow?since=\${last}\`).then(r => r.json()); fetch("/api/usage", { headers: { "X-Hub": "1" } });`;
+  assert.deepEqual(fetches(src), [{ url: "/api/hold", method: "POST" }, { url: "/api/flow?since=0", method: "GET" }, { url: "/api/usage", method: "GET" }]);
+  assert.deepEqual(pageCalls("страница", src, ['if path == "/api/hold":']), { gets: ["/api/flow?since=0", "/api/usage"], missing: [] });
+  assert.deepEqual(pageCalls("страница", src, ["нет его"]).missing, ["страница: запрос POST /api/hold — пути нет в коде хаба"]);
+  assert.deepEqual(pageCalls("страница", src).missing, []);
+});
+
+test("журнал: до последней ротации живая лента держит лишь выборку — слова адресату оттуда не потеря; после — сверяем", () => {
+  // m608937 и др. (20.10): доставлены hub-core, журнал ротирован на 613433, в живой ленте хвост 534700…613620 без них
+  const events = [
+    said(608937, "hub-core"), ev(608939, "turn.started", "hub-core", { marker: "m608937" }),
+    ev(613433, "core.snapshot", null, { why: "rotate" }),
+    said(613500, "hub-core"), ev(613502, "turn.started", "hub-core", { marker: "m613500" }),
+  ];
+  const lines = { "hub-core": [{ kind: "in", id: "m534700", seq: 534700, sender: "ядро" }, { kind: "out", seq: 613620 }] };
+  const msgs = messagesOf(events);
+  assert.deepEqual(msgs.map((m) => [m.id, m.fed]), [["m608937", false], ["m613500", true]]);
+  const out = checkJournal(msgs, lines, { m608937: { state: "delivered" }, m613500: { state: "delivered" } });
+  assert.equal(out.length, 1);
+  assert.match(out[0], /hub-core: слова владельца m613500 нет в ленте/);
 });

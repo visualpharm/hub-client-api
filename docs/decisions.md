@@ -41,3 +41,12 @@ Decided: describe snapshot.sidebar_hidden + POST /api/sidebar/hidden (feature `s
 reply source; the contract names what they rely on. Undo: remove the entries. By: agent.
 
 Check tool: body fields of an optional request whose path is absent from the core code (module outside core) are not compared with the core; the live hub covers them.
+
+## 2026-10-20 · watch: owner words are checked by delivery, the feed only after the last journal rotation
+Decided: tools/watch.mjs reads the journal window from journal.jsonl and journal-archive/*.jsonl (mtime inside the window). A word handed
+by the core to another session (turn.started marker/also or host.done type sent with another entity — a sleeping executor's message goes to
+whoever raised it) is not compared with the addressee feed. A word delivered to the addressee is compared with its feed only when it came
+after the last `core.snapshot why=rotate`: before that the live flagman feed keeps only a selection (history is in the archive). A word with
+no delivery at all, in a final state (delivered/failed), is reported as a real loss. Page fetch() calls with a non-GET method are not probed
+with GET (flagman answers 404 "no such page" for POST-only paths, the body is parsed before the path); their path is looked up in --core.
+Why: false alarms m607245/m611723 (redirected) and m606589…m610326 (before rotation), POST /api/hold. Undo: revert the commit. By: agent.
