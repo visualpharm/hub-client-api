@@ -106,5 +106,5 @@ test("malformed API inputs remain safe and a release bumps both adapter and mani
   assert.deepEqual(rules.timeline(t), t);
   const { readFileSync } = await import("node:fs");
   assert.ok(rules.rev >= 5);
-  assert.equal(JSON.parse(readFileSync(new URL("../hub-plugin.json", import.meta.url))).version, "1.1.4");
+  assert.equal(JSON.parse(readFileSync(new URL("../hub-plugin.json", import.meta.url))).version, "1.1.5");
 });
