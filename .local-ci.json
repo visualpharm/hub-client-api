@@ -1,4 +1,8 @@
 {
   "version": 1,
-  "command": ["node", "--test", "tests/"]
+  "command": [
+    "node",
+    "--test",
+    "tests/*.test.mjs"
+  ]
 }
