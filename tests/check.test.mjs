@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkCore, checkSendAudit, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
+import { checkCore, checkSendAgent, checkSendAudit, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const contract = JSON.parse(fs.readFileSync(path.join(root, "contract", "v1.json"), "utf8"));
@@ -437,4 +437,27 @@ test("сверка отправок: запрос — необязательны
   assert.deepEqual(checkSnapshot(contract, v1, s), []);
   delete s.send_audit.last_missing[0].client_id;
   assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.send_audit.last_missing[].client_id: нет поля (string)"]);
+});
+
+test("слова от имени агента: запрос — необязательный, по feature send.agent; ответ в виде договора; строка модуля в ленте не слова владельца", () => {
+  const r = contract.requests.find((x) => x.method === "POST" && x.path === "/api/send/agent");
+  assert.ok(r, "POST /api/send/agent есть в договоре");
+  assert.equal(r.optional, true);
+  assert.equal(r.feature, "send.agent");
+  assert.deepEqual(r.body, ["agent", "to", "text", "client_id"]);
+  assert.deepEqual(checkSendAgent(contract, { ok: true, seq: 10, id: "m10" }), []);
+  assert.deepEqual(checkSendAgent(contract, { ok: true, queued: true }), []);
+  assert.deepEqual(checkSendAgent(contract, { ok: true, seq: 10, id: "m10", duplicate: true }), []);
+  assert.deepEqual(checkSendAgent(contract, { seq: 10 }), ["send_agent.ok: нет поля (boolean)"]);
+  assert.deepEqual(checkSendAgent(contract, { ok: true, duplicate: "yes" }), ["send_agent.duplicate: string вместо boolean"]);
+  // строка ленты, как её отдаёт ядро flagman (views): sender mod:…, from.kind module, текст «[агент X] …»
+  const t = timeline();
+  t.items.push({ k: 9, kind: "in", seq: 9, id: "m9", ts: 1, channel: "plugin", sender: "mod:hubbahub-agent-send",
+                 from: { kind: "module", name: "hubbahub-agent-send" }, text: "[агент codex] Выполнено" });
+  assert.deepEqual(checkTimeline(contract, v1, t), []);
+  const out = v1.timeline(t).items.at(-1);
+  assert.equal(out.sender, "mod:hubbahub-agent-send");   // правила автора не меняют: клиент отличает его от слов владельца
+  assert.equal(out.from.kind, "module");
+  t.items.at(-1).from = "codex";
+  assert.deepEqual(checkTimeline(contract, v1, t), ["timeline.items[in].from: string вместо object"]);
 });

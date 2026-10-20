@@ -89,6 +89,11 @@ export function checkSendAudit(contract, answer) {
   return diff(answer, contract.answers.send_audit, "send_audit");
 }
 
+/** Ответ слов от имени агента (POST /api/send/agent, feature send.agent). Живой пробы нет: запрос пишет в ленту сессии. */
+export function checkSendAgent(contract, answer) {
+  return diff(answer, contract.answers.send_agent, "send_agent");
+}
+
 /** Пути и поля запросов клиента (после правила request) — есть ли они в коде хаба. */
 /** Код страницы хаба и модулей, чьи поля она передаёт дальше как есть (сниппеты разбирают op в своём модуле). */
 export const coreCode = (dir) => ["web", "snippets"].map((m) => path.join(dir, "modules", m)).filter((d) => fs.existsSync(d))

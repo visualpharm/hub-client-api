@@ -64,3 +64,11 @@ contract descriptions. No adapter code/version or watch behavior changed. Determ
 A live snapshot comparison checks that the new optional fields introduce no additional contract errors.
 Full UI/build suites are omitted under the owner's explicit merge instruction. Rollback: revert the two merge commits;
 no data or server migration. By: Codex, coordinated with hub-dev and client-coordinator.
+
+## 2026-10-20 · send.agent (hubbahub-agent-send) in the contract without a rules release
+Decided: describe POST /api/send/agent (optional, feature `send.agent`; body agent, to, text, client_id), its answer (answers.send_agent: ok, seq, id,
+queued, duplicate) and the module row in the feed (kind `in`: channel `plugin`, sender `mod:hubbahub-agent-send`, from {kind: module, name}, text starting
+«[агент X] ») in contract/v1.json; kinds.in gets optional channel and from. v1.js rules and rev stay: the hub already fills sender, and the rules only name
+an author when sender is empty. Clients tell the module row from the owner's words by from.kind == module or the mod: prefix and show it as an incoming
+word from agent X. Why: hub-ios sends the Mac crash report there instead of /api/send with a foreign agent field (it was recorded as the owner's word).
+Undo: remove the entries. By: agent (d649984).
