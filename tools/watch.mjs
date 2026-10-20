@@ -24,6 +24,18 @@ import { checkCore, coreCode, loadRules } from "./check.mjs";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const OWNER_CHANNELS = ["web", "cli", "telegram"];
 
+// Виды автора поля from (ядро, API 1.26), которые не владелец: такая строка служебная, каким бы каналом ни пришла
+const NOT_OWNER = ["core", "hub", "schedule", "session", "module", "plugin"];
+const fromKind = (it) => (it.from && typeof it.from === "object" ? it.from.kind : null);
+/** Почему строка in не слово владельца (до правил): адресат, автор по полю from, канал; null — слово владельца. */
+export function notOwner(it) {
+  if (it.to) return "поручение для " + it.to;
+  const kind = fromKind(it);
+  if (NOT_OWNER.includes(kind)) return "от " + kind;
+  if (kind === "owner") return null;
+  return it.channel && !OWNER_CHANNELS.includes(it.channel) ? "канал " + it.channel : null;
+}
+
 /** Слова владельца, как их видит клиент версии 1: входящая строка без автора. */
 export const ownerRows = (items) => items.filter((it) => it.kind === "in" && !it.sender);
 const count = (items, kind) => items.filter((it) => it.kind === kind).length;
@@ -50,12 +62,11 @@ export function checkLive(name, raw, adapted) {
     if (count(after, kind) !== count(before, kind)) out.push(`${name}: строк ${kind} после правил ${count(after, kind)} вместо ${count(before, kind)}`);
   }
   for (const it of ownerRows(after)) {
-    if (it.to || (it.channel && !OWNER_CHANNELS.includes(it.channel))) {
-      out.push(`${name}: ${it.id} (${it.to ? "поручение для " + it.to : "канал " + it.channel}) показано словами владельца: «${cut(it.text)}»`);
-    }
+    const why = notOwner(it);
+    if (why) out.push(`${name}: ${it.id} (${why}) показано словами владельца: «${cut(it.text)}»`);
   }
   for (const it of before) {
-    if (it.kind === "in" && !it.sender && !it.to && OWNER_CHANNELS.includes(it.channel)
+    if (it.kind === "in" && !it.sender && !notOwner(it) && (fromKind(it) === "owner" || OWNER_CHANNELS.includes(it.channel))
         && !ownerRows(after).some((x) => x.id === it.id)) out.push(`${name}: слово владельца ${it.id} пропало: «${cut(it.text)}»`);
   }
   return out;

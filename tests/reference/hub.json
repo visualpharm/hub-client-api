@@ -1,6 +1,6 @@
 {
-  "about": "Эталонная лента сессии-хаба в том виде, как её отдаёт хаб: все виды входящих строк. owner — id строк, которые клиент должен показать словами владельца; visible — сколько ответов и файлов должно остаться.",
-  "owner": ["m1", "m2", "m3", "m9"],
+  "about": "Эталонная лента сессии-хаба в том виде, как её отдаёт хаб: все виды входящих строк (m16 — hub send из задания расписания: канал cli, автор в поле from). owner — id строк, которые клиент должен показать словами владельца; visible — сколько ответов и файлов должно остаться.",
+  "owner": ["m1", "m2", "m3", "m9", "m17"],
   "visible": {"out": 2, "reply": 1, "file": 1},
   "timeline": {
     "epoch": "e1", "rev": 12, "full": true,
@@ -19,7 +19,9 @@
       {"k": 12, "seq": 12, "ts": 12, "kind": "reply", "from": "report-maker", "text": "Отчёт готов"},
       {"k": 13, "seq": 13, "ts": 13, "kind": "file", "name": "report.pdf", "path": "/tmp/report.pdf", "image": false},
       {"k": 14, "seq": 14, "ts": 14, "kind": "out", "text": "Отчёт у тебя."},
-      {"k": 15, "seq": 15, "ts": 15, "kind": "in", "id": "m15", "text": "Сторож: сессия зависла", "channel": "watch", "sender": null}
+      {"k": 15, "seq": 15, "ts": 15, "kind": "in", "id": "m15", "text": "Сторож: сессия зависла", "channel": "watch", "sender": null},
+      {"k": 16, "seq": 16, "ts": 16, "kind": "in", "id": "m16", "text": "Проверь клиентское API", "channel": "cli", "sender": null, "from": {"kind": "schedule"}},
+      {"k": 17, "seq": 17, "ts": 17, "kind": "in", "id": "m17", "text": "Покажи статус", "channel": "web", "sender": null, "from": {"kind": "owner"}}
     ]
   }
 }

@@ -123,25 +123,48 @@ const none = { api: 1, rev: 0, snapshot: (x) => x, timeline: (x) => x, request: 
 test("эталон: словами владельца — только его сообщения; ответы и файлы на месте", () => {
   assert.deepEqual(checkReference(v1, ref, "hub"), []);
   const items = v1.timeline(structuredClone(ref.timeline)).items;
-  assert.deepEqual(ownerRows(items).map((it) => it.id), ["m1", "m2", "m3", "m9"]);
-  assert.deepEqual(items.filter((it) => ["m5", "m6", "m7", "m15"].includes(it.id)).map((it) => it.sender), ["hub", "плагин", "ядро", "watch"]);
+  assert.deepEqual(ownerRows(items).map((it) => it.id), ["m1", "m2", "m3", "m9", "m17"]);
+  assert.deepEqual(items.filter((it) => ["m5", "m6", "m7", "m15", "m16"].includes(it.id)).map((it) => it.sender), ["hub", "плагин", "ядро", "watch", "Расписание"]);
   assert.equal(items.find((it) => it.id === "m11").sender, "report-maker");   // названный автор не меняется
   assert.deepEqual(v1.timeline({ epoch: "e", rev: 1 }), { epoch: "e", rev: 1 });
 });
 
 test("без правила сверка ловит служебное в роли владельца — на эталоне и на живой ленте", () => {
   const bad = checkReference(none, ref, "hub");
-  assert.equal(bad.length, 4);
+  assert.equal(bad.length, 5);
+  assert.match(bad[4], /служебное сообщение m16 показано словами владельца/);
   assert.match(bad[0], /служебное сообщение m5 показано словами владельца/);
   const live = checkLive("hub", ref.timeline, ref.timeline);
-  assert.equal(live.length, 4);
+  assert.equal(live.length, 5);
+  assert.match(live[4], /m16 \(от schedule\) показано словами владельца/);
   assert.match(live[1], /m6 \(канал plugin\) показано словами владельца/);
   assert.deepEqual(checkLive("hub", ref.timeline, v1.timeline(structuredClone(ref.timeline))), []);
   // правило потеряло ответ или слово владельца — тоже расхождение
   const fixed = v1.timeline(structuredClone(ref.timeline));
   const lost = { ...fixed, items: fixed.items.filter((it) => it.k !== 4 && it.id !== "m1") };
-  assert.deepEqual(checkLive("hub", ref.timeline, lost).slice(0, 2), ["hub: после правил строк 13 вместо 15", "hub: строк out после правил 1 вместо 2"]);
+  assert.deepEqual(checkLive("hub", ref.timeline, lost).slice(0, 2), ["hub: после правил строк 15 вместо 17", "hub: строк out после правил 1 вместо 2"]);
   assert.match(checkLive("hub", ref.timeline, lost)[2], /слово владельца m1 пропало/);
+});
+
+test("поле from: автор не владелец — строка служебная, даже из его канала; без from — как раньше", () => {
+  const row = (extra) => ({ k: 1, seq: 1, ts: 1, kind: "in", id: "m1", text: "x", channel: "cli", sender: null, ...extra });
+  const one = (extra) => v1.timeline({ epoch: "e", rev: 1, items: [row(extra)] }).items[0];
+  assert.equal(one({ from: { kind: "schedule" } }).sender, "Расписание");
+  assert.equal(one({ from: { kind: "session", name: "colleague-prs" } }).sender, "colleague-prs");
+  assert.equal(one({ channel: "web", from: { kind: "module", name: "agent-send" } }).sender, "mod:agent-send");
+  assert.equal(one({ channel: "web", from: { kind: "plugin", name: "teams" } }).sender, "ext:teams");
+  assert.equal(one({ from: { kind: "core" } }).sender, "ядро");
+  assert.equal(one({ from: { kind: "hub" } }).sender, "hub");
+  // владелец, старый хаб без поля, from: null (ядро не знает автора) и незнакомый вид — прежнее правило по каналу
+  for (const extra of [{ from: { kind: "owner" } }, {}, { from: null }, { from: { kind: "someday" } }, { channel: "web" }, { channel: "telegram" }]) {
+    assert.equal(one(extra).sender, null, JSON.stringify(extra));
+  }
+  // сверка живой ленты: служебное по from без автора — расхождение; слово владельца с from.kind=owner пропало — тоже
+  const raw = { items: [row({ from: { kind: "schedule" } })] };
+  assert.match(checkLive("hub", raw, raw)[0], /m1 \(от schedule\) показано словами владельца/);
+  assert.deepEqual(checkLive("hub", raw, v1.timeline(structuredClone(raw))), []);
+  const own = { items: [row({ from: { kind: "owner" } })] };
+  assert.match(checkLive("hub", own, { items: [{ ...own.items[0], sender: "x" }] })[0], /слово владельца m1 пропало/);
 });
 
 test("журнал против ленты: слово владельца на месте и его словами, чужое — нет", () => {

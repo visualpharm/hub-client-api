@@ -16,6 +16,13 @@
   // Каналы, которыми пишет сам владелец: страница (и приложения), CLI вне сессий, его Telegram.
   const OWNER_CHANNELS = ["web", "cli", "telegram"];
   const SERVICE = { core: "ядро", plugin: "плагин", schedule: "Расписание", session: "сессия" };
+  // Поле from строки in (хаб с API 1.26): кто прислал, {kind, name?}. Канал говорит лишь, каким путём пришло —
+  // hub send из задания расписания идёт каналом cli, хотя это не владелец. Автор строки — по виду и имени.
+  const FROM = {
+    core: () => "ядро", hub: () => "hub", schedule: () => "Расписание",
+    session: (n) => n || "сессия", module: (n) => (n ? "mod:" + n : "модуль"), plugin: (n) => (n ? "ext:" + n : "плагин"),
+  };
+  const fromKind = (it) => (it.from && typeof it.from === "object" ? it.from.kind : null);
 
   // Только известная транспортная шапка отчёта. Не угадываем автора из её from и не меняем журнал/маршрутизацию.
   // Незнакомое поле, неоднозначная шапка или пустой результат — показываем исходный текст целиком.
@@ -90,13 +97,17 @@
     },
 
     // Клиент версии 1 считает словами владельца входящую строку без sender. Хаб же оставляет sender пустым и у
-    // сообщений плагинов и ядра сессии, и у копии поручения другому треду (поле to). У таких строк называем автора:
-    // слова владельца — только строки из его каналов, без адресата.
+    // сообщений плагинов и ядра сессии, и у копии поручения другому треду (поле to), и у сообщений расписания,
+    // сессий и модулей, пришедших каналом владельца (автор — в поле from). У таких строк называем автора: слова
+    // владельца — строки с from.kind owner, а без поля from (прежние хабы, автор неизвестен) — из его каналов.
     timeline(t) {
       if (!t || !Array.isArray(t.items)) return t;
       const items = t.items.map(replyText).map((it) => {
         if (!it || it.kind !== "in" || it.sender) return it;
         if (it.to) return { ...it, sender: "hub" };
+        const kind = fromKind(it);
+        if (kind === "owner") return it;
+        if (Object.prototype.hasOwnProperty.call(FROM, kind)) return { ...it, sender: FROM[kind](it.from.name) };
         if (it.channel && !OWNER_CHANNELS.includes(it.channel)) return { ...it, sender: SERVICE[it.channel] || it.channel };
         return it;
       });
@@ -114,5 +125,5 @@
     },
   };
 
-  root.HubClientAPI = { api: 1, rev: 4, ...rules };
+  root.HubClientAPI = { api: 1, rev: 5, ...rules };
 })(globalThis);
