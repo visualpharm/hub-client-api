@@ -56,3 +56,11 @@ Contract v1 now lists snapshot.hub_name and snapshot.hub_title as optional strin
 `sessions[]` entry with `kind == "hub"`. On flagman hub_name is the `title` from hub.json (empty by default since 19.10), not a session
 name. The snapshot check reports a hub without a `kind: "hub"` session. Rules unchanged (rev 5): native clients already read the kind.
 Why: a client taking the feed address from hub_name gets an empty feed on flagman. Undo: revert the commit. By: agent (d642567).
+
+## 2026-10-20 · Integrate pending optional delivery-audit and quota-hold contracts
+Merged task/send-audit and task/sessions-extra into current main while retaining the kind=hub identity clarification,
+rev 5 author rules and neutral fixtures. Both modules already expose these fields; conflicts were only overlapping
+contract descriptions. No adapter code/version or watch behavior changed. Deterministic Node suite: 33/33.
+A live snapshot comparison checks that the new optional fields introduce no additional contract errors.
+Full UI/build suites are omitted under the owner's explicit merge instruction. Rollback: revert the two merge commits;
+no data or server migration. By: Codex, coordinated with hub-dev and client-coordinator.

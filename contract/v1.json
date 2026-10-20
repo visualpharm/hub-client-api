@@ -1,6 +1,6 @@
 {
   "api": 1,
-  "about": "Что клиент версии 1 читает у хаба и что шлёт. «!» у типа или имени — поле обязано быть; без него — может не быть или быть null, но если есть, то этого типа. «*» — любой ключ. Хаб может добавлять поля и виды строк: клиент их не замечает. В requests: probe — параметры безопасной живой пробы GET; optional — есть не на каждом хабе (клиент прячет по features); absent — поле тела, которого нет в части ядер (значение — где нет и что делает клиент), сверка с кодом ядра его не требует; stream — поток событий. reactions.taken — всегда, и когда модуль «Реакции» выключен: свёртка отвеченного — не модуль. В /api/send: client_id — идемпотентность (повтор POST — одного сообщения), card — ответ на карточку вопроса qN. Сниппеты (feature snippets): GET /api/snippets?lang=ru|en → answers.snippets; POST — op add{title,text}, edit{id,title,text}, delete{id}, pin{id,pinned}, move{id,to}, ответ тот же; настройки разбора snippets.auto (bool) и snippets.count (0–5) — /api/settings/set {key,value}, строки в snapshot.settings. Тред хаба — сессия sessions[] с kind \"hub\" (одна; адрес ленты хаба — её name). hub_name и hub_title — только подпись хаба для показа (на flagman hub_name = title из hub.json, по умолчанию пустая строка), не имя сессии: адрес ленты из них не берётся. Сверка отправок (feature send.audit, модуль hubbahub-send-audit): POST /api/send/audit {client, sent: [{client_id, ts, to, head}], unconfirmed: [client_id]} — до 500 id в списке, только клиент владельца (owner: заголовок X-Hub-Owner: 1, иначе 403); 400 — плохое тело, 503 — модуль запускается; ответ → answers.send_audit: confirmed (seq — номер события), missing (ядро не принимало: клиент показывает «Не отправлено» и повторяет с тем же client_id), rejected (ядро отказало, reason), pending (<20 с — спросить позже), too_old (>1 сут). Ключ снимка send_audit — счётчики модуля.",
+  "about": "Что клиент версии 1 читает у хаба и что шлёт. «!» у типа или имени — поле обязано быть; без него — может не быть или быть null, но если есть, то этого типа. «*» — любой ключ. Хаб может добавлять поля и виды строк: клиент их не замечает. В requests: probe — параметры безопасной живой пробы GET; optional — есть не на каждом хабе (клиент прячет по features); absent — поле тела, которого нет в части ядер (значение — где нет и что делает клиент), сверка с кодом ядра его не требует; stream — поток событий. sessions_extra (feature session.quota_hold, модуль hubbahub-quota-hold на flagman) — поля сессий по имени, только сессии на паузе по лимиту: клиент накладывает запись на sessions[] с тем же именем (quota_hold, hold_mark.text — текст паузы, until — сброс); model_effective/model_fallback там всегда null. reactions.taken — всегда, и когда модуль «Реакции» выключен: свёртка отвеченного — не модуль. В /api/send: client_id — идемпотентность (повтор POST — одного сообщения), card — ответ на карточку вопроса qN. Сниппеты (feature snippets): GET /api/snippets?lang=ru|en → answers.snippets; POST — op add{title,text}, edit{id,title,text}, delete{id}, pin{id,pinned}, move{id,to}, ответ тот же; настройки разбора snippets.auto (bool) и snippets.count (0–5) — /api/settings/set {key,value}, строки в snapshot.settings. Тред хаба — сессия sessions[] с kind \"hub\" (одна; адрес ленты хаба — её name). hub_name и hub_title — только подпись хаба для показа (на flagman hub_name = title из hub.json, по умолчанию пустая строка), не имя сессии: адрес ленты из них не берётся. Сверка отправок (feature send.audit, модуль hubbahub-send-audit): POST /api/send/audit {client, sent: [{client_id, ts, to, head}], unconfirmed: [client_id]} — до 500 id в списке, только клиент владельца (owner: заголовок X-Hub-Owner: 1, иначе 403); 400 — плохое тело, 503 — модуль запускается; ответ → answers.send_audit: confirmed (seq — номер события), missing (ядро не принимало: клиент показывает «Не отправлено» и повторяет с тем же client_id), rejected (ядро отказало, reason), pending (<20 с — спросить позже), too_old (>1 сут). Ключ снимка send_audit — счётчики модуля.",
   "snapshot": {
     "seq": "number!",
     "epoch": "string!",
@@ -50,6 +50,19 @@
         "state": "string",
         "removable": "boolean",
         "reaction": "string"
+      }
+    },
+    "sessions_extra": {
+      "*": {
+        "quota_hold": "boolean",
+        "hold_mark": {
+          "text": "string!",
+          "since": "number"
+        },
+        "ts": "number",
+        "until": "number",
+        "model_effective": "string",
+        "model_fallback": "boolean"
       }
     },
     "reactions!": {
