@@ -315,39 +315,39 @@ test("поле из absent — не дефект ядра без него (notes
 const ev = (seq, type, entity, data, ts = 1792484000 + seq / 1000) => ({ seq, ts, src: "core", type, entity, data });
 const said = (seq, to, extra = {}) => ev(seq, "message.received", null, { to, text: "слово " + seq, channel: "web", owner: true, ...extra });
 
-test("журнал: слово спящему исполнителю ядро отдало тому, кто его поднял — не расхождение (m607245, m611723)", () => {
+test("журнал: слово спящему исполнителю ядро отдало тому, кто его поднял — не расхождение", () => {
   const events = [
-    said(607245, "inbox-wa-group-tour"),
-    ev(607246, "host.done", "hub-dev", { do: "type", message: "m607245", attempt: 1, result: "sent" }),
-    ev(607247, "turn.started", "hub-dev", { marker: "m607245" }),
-    said(611723, "procurement", { quote: "Открой чат", todo: "t:1" }),
-    ev(611724, "host.done", "hub-core", { do: "type", message: "m611723", attempt: 1, result: "sent" }),
-    ev(611726, "turn.started", "hub-core", { marker: "m611723" }),
+    said(107245, "worker"),
+    ev(107246, "host.done", "lead", { do: "type", message: "m107245", attempt: 1, result: "sent" }),
+    ev(107247, "turn.started", "lead", { marker: "m107245" }),
+    said(111723, "shopper", { quote: "Открой чат", todo: "t:1" }),
+    ev(111724, "host.done", "hub-main", { do: "type", message: "m111723", attempt: 1, result: "sent" }),
+    ev(111726, "turn.started", "hub-main", { marker: "m111723" }),
   ];
   const msgs = messagesOf(events);
-  assert.deepEqual(msgs.map((m) => [m.id, m.took]), [["m607245", ["hub-dev"]], ["m611723", ["hub-core"]]]);
+  assert.deepEqual(msgs.map((m) => [m.id, m.took]), [["m107245", ["lead"]], ["m111723", ["hub-main"]]]);
   // ленты адресатов доходят до этих сообщений, но их там нет — ядро показало слово у другой сессии
-  const lines = { "inbox-wa-group-tour": [{ kind: "out", seq: 600000 }], procurement: [{ kind: "out", seq: 600000 }],
-                  "hub-dev": [], "hub-core": [] };
-  const states = { m607245: { state: "delivered" }, m611723: { state: "delivered" } };
+  const lines = { "worker": [{ kind: "out", seq: 100000 }], shopper: [{ kind: "out", seq: 100000 }],
+                  "lead": [], "hub-main": [] };
+  const states = { m107245: { state: "delivered" }, m111723: { state: "delivered" } };
   assert.deepEqual(checkJournal(msgs, lines, states), []);
 });
 
 test("журнал: настоящая потеря — принято, никому не отдано и нет в ленте; доставлено адресату, а в ленте нет", () => {
   const events = [
-    said(700001, "procurement"),                                         // принято и потеряно
-    said(700002, "procurement"),                                         // ещё в очереди спящей сессии
-    said(700003, "procurement"),                                         // ход его взял, лента его потеряла
-    ev(700004, "turn.started", "procurement", { marker: "m700099", also: ["m700003"] }),
-    said(700005, "procurement"),                                         // ход взял и лента показывает
-    ev(700006, "turn.started", "procurement", { marker: "m700005" }),
+    said(700001, "shopper"),                                         // принято и потеряно
+    said(700002, "shopper"),                                         // ещё в очереди спящей сессии
+    said(700003, "shopper"),                                         // ход его взял, лента его потеряла
+    ev(700004, "turn.started", "shopper", { marker: "m700099", also: ["m700003"] }),
+    said(700005, "shopper"),                                         // ход взял и лента показывает
+    ev(700006, "turn.started", "shopper", { marker: "m700005" }),
   ];
-  const lines = { procurement: [{ kind: "out", seq: 690000 }, { kind: "in", id: "m700005", seq: 700005 }] };
+  const lines = { shopper: [{ kind: "out", seq: 690000 }, { kind: "in", id: "m700005", seq: 700005 }] };
   const states = { m700001: { state: "failed" }, m700002: { state: "queued" }, m700003: { state: "delivered" }, m700005: { state: "delivered" } };
   const out = checkJournal(messagesOf(events), lines, states);
   assert.equal(out.length, 2);
-  assert.match(out[0], /procurement: слово владельца m700001 принято ядром, но не доставлено \(failed\) и нет в ленте/);
-  assert.match(out[1], /procurement: слова владельца m700003 нет в ленте/);
+  assert.match(out[0], /shopper: слово владельца m700001 принято ядром, но не доставлено \(failed\) и нет в ленте/);
+  assert.match(out[1], /shopper: слова владельца m700003 нет в ленте/);
 });
 
 test("журнал после ротации: ход с маркером остался только в архиве — доставка находится", () => {
@@ -356,16 +356,16 @@ test("журнал после ротации: ход с маркером ост�
   const now = 1792490000;
   const line = (e) => JSON.stringify(e) + "\n";
   // архив: всё до ротации; журнал: выборка прежних событий (слово осталось, ход — нет) и новое после ротации
-  fs.writeFileSync(path.join(dir, "journal-archive", "journal-1-607300.jsonl"),
-    [ev(1, "core.snapshot", null, {}, now - 90000), said(607245, "inbox-wa-group-tour"), ev(607247, "turn.started", "hub-dev", { marker: "m607245" })]
+  fs.writeFileSync(path.join(dir, "journal-archive", "journal-1-107300.jsonl"),
+    [ev(1, "core.snapshot", null, {}, now - 90000), said(107245, "worker"), ev(107247, "turn.started", "lead", { marker: "m107245" })]
       .map((e) => line({ ...e, ts: e.seq === 1 ? e.ts : now - 7000 + e.seq / 1e6 })).join(""));
   fs.writeFileSync(path.join(dir, "journal.jsonl"),
-    [ev(1, "core.snapshot", null, {}, now - 90000), { ...said(607245, "inbox-wa-group-tour"), ts: now - 7000 },
-     ev(607301, "core.snapshot", null, { why: "rotate" }, now - 3000), { ...said(607400, "hub"), ts: now - 100 }].map(line).join(""));
+    [ev(1, "core.snapshot", null, {}, now - 90000), { ...said(107245, "worker"), ts: now - 7000 },
+     ev(107301, "core.snapshot", null, { why: "rotate" }, now - 3000), { ...said(107400, "hub"), ts: now - 100 }].map(line).join(""));
   const msgs = journalMessages(path.join(dir, "journal.jsonl"), 3, now);
-  assert.deepEqual(msgs.map((m) => [m.id, m.took]), [["m607245", ["hub-dev"]], ["m607400", []]]);
+  assert.deepEqual(msgs.map((m) => [m.id, m.took]), [["m107245", ["lead"]], ["m107400", []]]);
   // мелкие куски чтения: строки на стыке кусков не теряются
-  for (const f of [path.join(dir, "journal.jsonl"), path.join(dir, "journal-archive", "journal-1-607300.jsonl")]) {
+  for (const f of [path.join(dir, "journal.jsonl"), path.join(dir, "journal-archive", "journal-1-107300.jsonl")]) {
     assert.deepEqual(journalEvents(f, now - 3 * 3600, 37), journalEvents(f, now - 3 * 3600));
   }
   fs.rmSync(dir, { recursive: true });
@@ -381,16 +381,16 @@ test("запросы страницы: POST не пробуется GET-ом —
 });
 
 test("журнал: до последней ротации живая лента держит лишь выборку — слова адресату оттуда не потеря; после — сверяем", () => {
-  // m608937 и др. (20.10): доставлены hub-core, журнал ротирован на 613433, в живой ленте хвост 534700…613620 без них
+  // слово до ротации доставлено адресату, журнал ротирован, в живой ленте хвост без него
   const events = [
-    said(608937, "hub-core"), ev(608939, "turn.started", "hub-core", { marker: "m608937" }),
-    ev(613433, "core.snapshot", null, { why: "rotate" }),
-    said(613500, "hub-core"), ev(613502, "turn.started", "hub-core", { marker: "m613500" }),
+    said(108937, "hub-main"), ev(108939, "turn.started", "hub-main", { marker: "m108937" }),
+    ev(113433, "core.snapshot", null, { why: "rotate" }),
+    said(113500, "hub-main"), ev(113502, "turn.started", "hub-main", { marker: "m113500" }),
   ];
-  const lines = { "hub-core": [{ kind: "in", id: "m534700", seq: 534700, sender: "ядро" }, { kind: "out", seq: 613620 }] };
+  const lines = { "hub-main": [{ kind: "in", id: "m34700", seq: 34700, sender: "ядро" }, { kind: "out", seq: 113620 }] };
   const msgs = messagesOf(events);
-  assert.deepEqual(msgs.map((m) => [m.id, m.fed]), [["m608937", false], ["m613500", true]]);
-  const out = checkJournal(msgs, lines, { m608937: { state: "delivered" }, m613500: { state: "delivered" } });
+  assert.deepEqual(msgs.map((m) => [m.id, m.fed]), [["m108937", false], ["m113500", true]]);
+  const out = checkJournal(msgs, lines, { m108937: { state: "delivered" }, m113500: { state: "delivered" } });
   assert.equal(out.length, 1);
-  assert.match(out[0], /hub-core: слова владельца m613500 нет в ленте/);
+  assert.match(out[0], /hub-main: слова владельца m113500 нет в ленте/);
 });

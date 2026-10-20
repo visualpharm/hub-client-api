@@ -49,4 +49,4 @@ whoever raised it) is not compared with the addressee feed. A word delivered to 
 after the last `core.snapshot why=rotate`: before that the live flagman feed keeps only a selection (history is in the archive). A word with
 no delivery at all, in a final state (delivered/failed), is reported as a real loss. Page fetch() calls with a non-GET method are not probed
 with GET (flagman answers 404 "no such page" for POST-only paths, the body is parsed before the path); their path is looked up in --core.
-Why: false alarms m607245/m611723 (redirected) and m606589…m610326 (before rotation), POST /api/hold. Undo: revert the commit. By: agent.
+Why: false alarms on redirected words and on words older than the journal rotation, POST /api/hold. Undo: revert the commit. By: agent.
