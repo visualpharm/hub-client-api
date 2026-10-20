@@ -394,3 +394,12 @@ test("журнал: до последней ротации живая лента
   assert.equal(out.length, 1);
   assert.match(out[0], /hub-main: слова владельца m113500 нет в ленте/);
 });
+
+test("тред хаба — сессия с kind hub; hub_name и hub_title — только подпись и бывают пустыми (flagman: title из hub.json)", () => {
+  assert.deepEqual(checkSnapshot(contract, v1, { ...snapshot(), hub_name: "", hub_title: "Хаб сессий" }), []);
+  const lost = snapshot();
+  delete lost.sessions[0].kind;
+  assert.deepEqual(checkSnapshot(contract, v1, { ...lost, hub_name: "hub" }), ["snapshot.sessions: нет сессии с kind hub (тред хаба)"]);
+  const typed = { ...snapshot(), hub_name: 5 };
+  assert.deepEqual(checkSnapshot(contract, v1, typed), ["snapshot.hub_name: number вместо string"]);
+});

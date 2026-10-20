@@ -59,7 +59,13 @@ export function diff(value, spec, where, out = []) {
 }
 
 export function checkSnapshot(contract, rules, snap) {
-  return diff(rules.snapshot(snap), contract.snapshot, "snapshot");
+  const got = rules.snapshot(snap);
+  const out = diff(got, contract.snapshot, "snapshot");
+  // тред хаба клиент находит только по kind: hub_name/hub_title — подпись, бывают пустыми
+  if (Array.isArray(got.sessions) && !got.sessions.some((s) => s && s.kind === "hub" && s.state !== "removed")) {
+    out.push("snapshot.sessions: нет сессии с kind hub (тред хаба)");
+  }
+  return out;
 }
 
 export function checkTimeline(contract, rules, answer) {

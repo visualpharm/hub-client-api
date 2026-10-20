@@ -1,6 +1,6 @@
 {
   "api": 1,
-  "about": "Что клиент версии 1 читает у хаба и что шлёт. «!» у типа или имени — поле обязано быть; без него — может не быть или быть null, но если есть, то этого типа. «*» — любой ключ. Хаб может добавлять поля и виды строк: клиент их не замечает. В requests: probe — параметры безопасной живой пробы GET; optional — есть не на каждом хабе (клиент прячет по features); absent — поле тела, которого нет в части ядер (значение — где нет и что делает клиент), сверка с кодом ядра его не требует; stream — поток событий. reactions.taken — всегда, и когда модуль «Реакции» выключен: свёртка отвеченного — не модуль. В /api/send: client_id — идемпотентность (повтор POST — одного сообщения), card — ответ на карточку вопроса qN. Сниппеты (feature snippets): GET /api/snippets?lang=ru|en → answers.snippets; POST — op add{title,text}, edit{id,title,text}, delete{id}, pin{id,pinned}, move{id,to}, ответ тот же; настройки разбора snippets.auto (bool) и snippets.count (0–5) — /api/settings/set {key,value}, строки в snapshot.settings.",
+  "about": "Что клиент версии 1 читает у хаба и что шлёт. «!» у типа или имени — поле обязано быть; без него — может не быть или быть null, но если есть, то этого типа. «*» — любой ключ. Хаб может добавлять поля и виды строк: клиент их не замечает. В requests: probe — параметры безопасной живой пробы GET; optional — есть не на каждом хабе (клиент прячет по features); absent — поле тела, которого нет в части ядер (значение — где нет и что делает клиент), сверка с кодом ядра его не требует; stream — поток событий. reactions.taken — всегда, и когда модуль «Реакции» выключен: свёртка отвеченного — не модуль. В /api/send: client_id — идемпотентность (повтор POST — одного сообщения), card — ответ на карточку вопроса qN. Сниппеты (feature snippets): GET /api/snippets?lang=ru|en → answers.snippets; POST — op add{title,text}, edit{id,title,text}, delete{id}, pin{id,pinned}, move{id,to}, ответ тот же; настройки разбора snippets.auto (bool) и snippets.count (0–5) — /api/settings/set {key,value}, строки в snapshot.settings. Тред хаба — сессия sessions[] с kind \"hub\" (одна; адрес ленты хаба — её name). hub_name и hub_title — только подпись хаба для показа (на flagman hub_name = title из hub.json, по умолчанию пустая строка), не имя сессии: адрес ленты из них не берётся.",
   "snapshot": {
     "seq": "number!",
     "epoch": "string!",
@@ -204,7 +204,9 @@
         ],
         "done_at": "number"
       }
-    ]
+    ],
+    "hub_name": "string",
+    "hub_title": "string"
   },
   "timeline": {
     "epoch": "string!",

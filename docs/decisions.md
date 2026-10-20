@@ -50,3 +50,9 @@ after the last `core.snapshot why=rotate`: before that the live flagman feed kee
 no delivery at all, in a final state (delivered/failed), is reported as a real loss. Page fetch() calls with a non-GET method are not probed
 with GET (flagman answers 404 "no such page" for POST-only paths, the body is parsed before the path); their path is looked up in --core.
 Why: false alarms on redirected words and on words older than the journal rotation, POST /api/hold. Undo: revert the commit. By: agent.
+
+## 2026-10-20 · Hub thread is the session with kind "hub"; hub_name is only a caption
+Contract v1 now lists snapshot.hub_name and snapshot.hub_title as optional strings and states that the hub feed address is the
+`sessions[]` entry with `kind == "hub"`. On flagman hub_name is the `title` from hub.json (empty by default since 19.10), not a session
+name. The snapshot check reports a hub without a `kind: "hub"` session. Rules unchanged (rev 5): native clients already read the kind.
+Why: a client taking the feed address from hub_name gets an empty feed on flagman. Undo: revert the commit. By: agent (d642567).
