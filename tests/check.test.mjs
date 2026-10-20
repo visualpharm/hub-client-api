@@ -277,6 +277,18 @@ test("sidebar_hidden, space_bookmarks, quote у строки и их пути: �
   assert.deepEqual(checkTimeline(contract, v1, t), ["timeline.items[in].quote: number вместо string"]);
 });
 
+test("sessions_extra (модуль hubbahub-quota-hold, признак session.quota_hold): необязателен; есть и нет — проходит", () => {
+  assert.deepEqual(checkSnapshot(contract, v1, snapshot()), []);
+  const s = { ...snapshot(), features: ["session.quota_hold"],
+              sessions_extra: { "hub-core": { quota_hold: true, hold_mark: { text: "Лимит провайдера исчерпан: задача ждёт в очереди", since: 10 },
+                                              ts: 11, until: null, model_effective: null, model_fallback: null } } };
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  s.sessions_extra["hub-core"].until = 1767225600;
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  s.sessions_extra["hub-core"] = { quota_hold: "yes", hold_mark: { since: 10 }, until: "soon" };
+  assert.deepEqual(checkSnapshot(contract, v1, s).length, 3);
+});
+
 test("поле из absent — не дефект ядра без него (notes нет в flagman v1.1.3), остальные поля сверяются", () => {
   const dir = fs.mkdtempSync(path.join(fs.mkdtempSync(path.join(process.env.TMPDIR || "/tmp", "core-")), ""));
   fs.mkdirSync(path.join(dir, "modules", "web"), { recursive: true });
