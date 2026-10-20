@@ -84,6 +84,11 @@ export function checkSnippets(contract, answer) {
   return diff(answer, contract.answers.snippets, "snippets");
 }
 
+/** Ответ сверки отправок (POST /api/send/audit, feature send.audit). Живой пробы нет: сверка пишет в журнал пропаж модуля. */
+export function checkSendAudit(contract, answer) {
+  return diff(answer, contract.answers.send_audit, "send_audit");
+}
+
 /** Пути и поля запросов клиента (после правила request) — есть ли они в коде хаба. */
 /** Код страницы хаба и модулей, чьи поля она передаёт дальше как есть (сниппеты разбирают op в своём модуле). */
 export const coreCode = (dir) => ["web", "snippets"].map((m) => path.join(dir, "modules", m)).filter((d) => fs.existsSync(d))

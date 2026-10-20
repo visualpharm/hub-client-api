@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkCore, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
+import { checkCore, checkSendAudit, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const contract = JSON.parse(fs.readFileSync(path.join(root, "contract", "v1.json"), "utf8"));
@@ -402,4 +402,27 @@ test("тред хаба — сессия с kind hub; hub_name и hub_title — 
   assert.deepEqual(checkSnapshot(contract, v1, { ...lost, hub_name: "hub" }), ["snapshot.sessions: нет сессии с kind hub (тред хаба)"]);
   const typed = { ...snapshot(), hub_name: 5 };
   assert.deepEqual(checkSnapshot(contract, v1, typed), ["snapshot.hub_name: number вместо string"]);
+});
+
+test("сверка отправок: запрос — необязательный, по feature send.audit, только владелец; ответ и ключ снимка — в виде договора", () => {
+  const r = contract.requests.find((x) => x.method === "POST" && x.path === "/api/send/audit");
+  assert.ok(r, "POST /api/send/audit есть в договоре");
+  assert.equal(r.optional, true);
+  assert.equal(r.feature, "send.audit");
+  assert.equal(r.owner, true);
+  assert.deepEqual(r.body, ["client", "sent", "unconfirmed"]);
+  const answer = () => ({ ok: true, confirmed: ["A1B2C3D4"], seq: { A1B2C3D4: 101 }, missing: ["E5F6A7B8"],
+                          rejected: [{ client_id: "C9D0E1F2", seq: 12, reason: "сессия закрыта" }], pending: [], too_old: [] });
+  assert.deepEqual(checkSendAudit(contract, answer()), []);
+  const bad = answer();
+  delete bad.missing;
+  delete bad.rejected[0].client_id;
+  assert.deepEqual(checkSendAudit(contract, bad), ["send_audit.missing: нет поля", "send_audit.rejected[].client_id: нет поля (string)"]);
+  const s = { ...snapshot(), features: ["push", "send.audit"],
+              send_audit: { since: 1, checked: 3, missing_total: 1, missing_open: 1, rejected_total: 0, late_total: 0,
+                            last_missing: [{ client_id: "E5F6A7B8", ts: 2, client: "ios 1.80", to: "hub" }],
+                            clients_without_id: { web: 3 }, clients_with_id: { web: 131 }, window: 86400 } };
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  delete s.send_audit.last_missing[0].client_id;
+  assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.send_audit.last_missing[].client_id: нет поля (string)"]);
 });
