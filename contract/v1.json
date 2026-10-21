@@ -1,6 +1,6 @@
 {
   "api": 1,
-  "about": "Что клиент версии 1 читает у хаба и что шлёт. «!» у типа или имени — поле обязано быть; без него — может не быть или быть null, но если есть, то этого типа. «*» — любой ключ. Хаб может добавлять поля и виды строк: клиент их не замечает. В requests: probe — параметры безопасной живой пробы GET; optional — есть не на каждом хабе (клиент прячет по features); absent — поле тела, которого нет в части ядер (значение — где нет и что делает клиент), сверка с кодом ядра его не требует; stream — поток событий. sessions_extra (feature session.quota_hold, модуль hubbahub-quota-hold на flagman) — поля сессий по имени, только сессии на паузе по лимиту: клиент накладывает запись на sessions[] с тем же именем (quota_hold, hold_mark.text — текст паузы, until — сброс); model_effective/model_fallback там всегда null. reactions.taken — всегда, и когда модуль «Реакции» выключен: свёртка отвеченного — не модуль. В /api/send: client_id — идемпотентность (повтор POST — одного сообщения), card — ответ на карточку вопроса qN. Сниппеты (feature snippets): GET /api/snippets?lang=ru|en → answers.snippets; POST — op add{title,text}, edit{id,title,text}, delete{id}, pin{id,pinned}, move{id,to}, ответ тот же; настройки разбора snippets.auto (bool) и snippets.count (0–5) — /api/settings/set {key,value}, строки в snapshot.settings. Тред хаба — сессия sessions[] с kind \"hub\" (одна; адрес ленты хаба — её name). hub_name и hub_title — только подпись хаба для показа (на flagman hub_name = title из hub.json, по умолчанию пустая строка), не имя сессии: адрес ленты из них не берётся. Сверка отправок (feature send.audit, модуль hubbahub-send-audit): POST /api/send/audit {client, sent: [{client_id, ts, to, head}], unconfirmed: [client_id]} — до 500 id в списке, только клиент владельца (owner: заголовок X-Hub-Owner: 1, иначе 403); 400 — плохое тело, 503 — модуль запускается; ответ → answers.send_audit: confirmed (seq — номер события), missing (ядро не принимало: клиент показывает «Не отправлено» и повторяет с тем же client_id), rejected (ядро отказало, reason), pending (<20 с — спросить позже), too_old (>1 сут). Ключ снимка send_audit — счётчики модуля. Слова от имени агента (feature send.agent, модуль hubbahub-agent-send): POST /api/send/agent {agent (1–40 знаков, без [ ] и переводов строк), to (сессия), text (до 20000), client_id (до 128, необязателен)}; заголовок X-Hub: 1; 202 → answers.send_agent: {ok, seq, id} или {ok, queued}, повтор client_id за сутки — тот же ответ + duplicate; ошибки {error}: 400 тело, 404 нет сессии, 409 ядро отказало (повторить тем же client_id), 503 модуль читает журнал после старта (повтор только с client_id), 403 запрос с HTML-вида. В ленте это строка kind in: channel plugin, sender \"mod:hubbahub-agent-send\", from {kind: \"module\", name: \"hubbahub-agent-send\"}, текст начинается «[агент X] » — слова агента X, не владельца; различать по from.kind == module или sender с префиксом mod:. Поле кладёт ядро в строку ленты (views), в state.messages sender пуст. Поправка к отправленному (feature send.correction, модуль edit-message): POST /api/send/correction {session, text (новый текст), quote (прежний текст сообщения), client_id (до 128, необязателен)}; только клиент владельца (owner, иначе 403); 202 → answers.send_correction: {ok, seq} или {ok, queued}; ошибки {error}: 400 тело (нужны session, text и quote), 409 ядро отказало (повторить тем же client_id). Хаб записывает её словом владельца с correction: true — сессия читает его как поправку; пузырь исходного сообщения на месте не меняется.",
+  "about": "Что клиент версии 1 читает у хаба и что шлёт. «!» у типа или имени — поле обязано быть; без него — может не быть или быть null, но если есть, то этого типа. «*» — любой ключ. Хаб может добавлять поля и виды строк: клиент их не замечает. В requests: probe — параметры безопасной живой пробы GET; optional — есть не на каждом хабе (клиент прячет по features); absent — поле тела, которого нет в части ядер (значение — где нет и что делает клиент), сверка с кодом ядра его не требует; stream — поток событий. sessions_extra (feature session.quota_hold, модуль hubbahub-quota-hold на flagman) — поля сессий по имени, только сессии на паузе по лимиту: клиент накладывает запись на sessions[] с тем же именем (quota_hold, hold_mark.text — текст паузы, until — сброс); model_effective/model_fallback там всегда null. reactions.taken — всегда, и когда модуль «Реакции» выключен: свёртка отвеченного — не модуль. В /api/send: client_id — идемпотентность (повтор POST — одного сообщения), card — ответ на карточку вопроса qN. Сниппеты (feature snippets): GET /api/snippets?lang=ru|en → answers.snippets; POST — op add{title,text}, edit{id,title,text}, delete{id}, pin{id,pinned}, move{id,to}, ответ тот же; настройки разбора snippets.auto (bool) и snippets.count (0–5) — /api/settings/set {key,value}, строки в snapshot.settings. Тред хаба — сессия sessions[] с kind \"hub\" (одна; адрес ленты хаба — её name). hub_name и hub_title — только подпись хаба для показа (на flagman hub_name = title из hub.json, по умолчанию пустая строка), не имя сессии: адрес ленты из них не берётся. Сверка отправок (feature send.audit, модуль hubbahub-send-audit): POST /api/send/audit {client, sent: [{client_id, ts, to, head}], unconfirmed: [client_id]} — до 500 id в списке, только клиент владельца (owner: заголовок X-Hub-Owner: 1, иначе 403); 400 — плохое тело, 503 — модуль запускается; ответ → answers.send_audit: confirmed (seq — номер события), missing (ядро не принимало: клиент показывает «Не отправлено» и повторяет с тем же client_id), rejected (ядро отказало, reason), pending (<20 с — спросить позже), too_old (>1 сут). Ключ снимка send_audit — счётчики модуля. Слова от имени агента (feature send.agent, модуль hubbahub-agent-send): POST /api/send/agent {agent (1–40 знаков, без [ ] и переводов строк), to (сессия), text (до 20000), client_id (до 128, необязателен)}; заголовок X-Hub: 1; 202 → answers.send_agent: {ok, seq, id} или {ok, queued}, повтор client_id за сутки — тот же ответ + duplicate; ошибки {error}: 400 тело, 404 нет сессии, 409 ядро отказало (повторить тем же client_id), 503 модуль читает журнал после старта (повтор только с client_id), 403 запрос с HTML-вида. В ленте это строка kind in: channel plugin, sender \"mod:hubbahub-agent-send\", from {kind: \"module\", name: \"hubbahub-agent-send\"}, текст начинается «[агент X] » — слова агента X, не владельца; различать по from.kind == module или sender с префиксом mod:. Поле кладёт ядро в строку ленты (views), в state.messages sender пуст. Поправка к отправленному (feature send.correction, модуль edit-message): POST /api/send/correction {session, text (новый текст), quote (прежний текст сообщения), client_id (до 128, необязателен)}; только клиент владельца (owner, иначе 403); 202 → answers.send_correction: {ok, seq} или {ok, queued}; ошибки {error}: 400 тело (нужны session, text и quote), 409 ядро отказало (повторить тем же client_id). Хаб записывает её словом владельца с correction: true — сессия читает его как поправку. Связь с исходным (feature send.correction.replaces, edit-message 0.2.0): в теле поправки replaces — точный id исходного (mN), только с этим признаком; модуль сам проверяет, что это более раннее слово владельца в той же сессии с видимой строкой ленты, цепочку правок сводит к первому исходному; непроверенный replaces поправку не отвергает — она уходит цитатой без связи. Строки /api/timeline поля replaces не несут: связи — в ключе снимка correction_refs {mПоправки: {replaces: mИсходного, session}} (до 1000 новейших и 96 КиБ; связей нет или проверка не удалась — {}), не вошедшую — GET /api/correction-ref?message=mN, только владелец: 200 {replaces, session} → answers.correction_ref; 400 не id вида mN, 403 не владелец, 404 связи нет, 503 проверка недоступна (спросить позже). Клиент ставит текст поправки на место пузыря исходного той же сессии (вложения и id исходного остаются, пометка «изменено»); нет связи, признака или исходной строки — поправка видна цитатой, как раньше. Ответ 202 сам связи не обещает.",
   "snapshot": {
     "seq": "number!",
     "epoch": "string!",
@@ -216,6 +216,12 @@
       },
       "window": "number"
     },
+    "correction_refs": {
+      "*": {
+        "replaces": "string!",
+        "session": "string!"
+      }
+    },
     "todo": [
       {
         "id": "string!",
@@ -383,10 +389,24 @@
         "session",
         "text",
         "quote",
-        "client_id"
+        "client_id",
+        "replaces"
       ],
+      "absent": {
+        "replaces": "нет в edit-message до 0.2.0: модуль поле не читает, поправка уходит цитатой; клиент шлёт его только с features send.correction.replaces"
+      },
       "optional": true,
       "feature": "send.correction",
+      "owner": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/correction-ref",
+      "query": [
+        "message"
+      ],
+      "optional": true,
+      "feature": "send.correction.replaces",
       "owner": true
     },
     {
@@ -658,7 +678,7 @@
     }
   ],
   "answers": {
-    "about": "Ответы необязательных адресов, когда хаб их объявил (features): сверка проверяет их живой ответ. Сверка отправок (send.audit): ответ POST /api/send/audit — send_audit. Слова от имени агента (send.agent): ответ POST /api/send/agent — send_agent. Поправка к отправленному (send.correction): ответ POST /api/send/correction — send_correction.",
+    "about": "Ответы необязательных адресов, когда хаб их объявил (features): сверка проверяет их живой ответ. Сверка отправок (send.audit): ответ POST /api/send/audit — send_audit. Слова от имени агента (send.agent): ответ POST /api/send/agent — send_agent. Поправка к отправленному (send.correction): ответ POST /api/send/correction — send_correction. Связь поправки с исходным (send.correction.replaces): ответ GET /api/correction-ref — correction_ref.",
     "snippets": {
       "items!": [
         {
@@ -712,6 +732,10 @@
       "ok": "boolean!",
       "seq": "number",
       "queued": "boolean"
+    },
+    "correction_ref": {
+      "replaces": "string!",
+      "session": "string!"
     }
   }
 }

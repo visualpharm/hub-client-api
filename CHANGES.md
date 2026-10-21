@@ -2,6 +2,16 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+The contract describes the link between a correction and the original message
+(edit-message 0.2.0, feature send.correction.replaces): POST /api/send/correction
+takes an optional replaces (exact original id mN); the snapshot key
+correction_refs maps a correction id to {replaces, session}; GET
+/api/correction-ref?message=mN (owner only) returns the same pair for a link the
+snapshot left out, 404 when there is none. Clients put the correction's text in
+place of the original bubble; without a link it stays a quoted correction.
+tools/check.mjs reads one link through the handle when the live snapshot has
+any. No rule change in v1.js.
+
 The contract describes the thread of a To-do item (hubbahub-todo-own 0.8.0):
 snapshot.todo[].thread and snapshot.todo_done[].thread are optional lists of feed
 row numbers (seq) in the item's session: the owner's words from the item's field

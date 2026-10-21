@@ -79,3 +79,12 @@ answer (answers.send_correction: ok, seq, queued) in contract/v1.json, as the mo
 409 core refused). v1.js rules and rev stay: the body passes unchanged; the existing /api/send rule still drops `correction` for cores that
 lose it. The bubble of the original message is not replaced (that needs snapshot.correction_refs, in progress at hub-dev). Why: native
 clients already send corrections there (Store+Correction.swift). Undo: remove the entries. By: agent (d684654).
+
+## 2026-10-21 · correction_refs (edit-message 0.2.0) in the contract without a rules release
+Decided: describe snapshot.correction_refs {mN: {replaces!, session!}}, GET /api/correction-ref?message=mN (optional, feature
+`send.correction.replaces`, owner only, no blind probe: an invented id honestly answers 404) with answers.correction_ref, and the
+optional body field `replaces` of POST /api/send/correction (absent before 0.2.0, sent only with the feature), as the module serves them
+(edit-message 0.2.0: main.py, correction_refs.py; live hub declares both features). v1.js rules and rev stay: the hub already serves the
+version-1 shape, older hubs simply lack the key and the feature, and the client itself validates and joins links (hub-ios
+PublicFeed+Correction.swift since 69d5c0ad); a filtering rule would duplicate that and need a plugin release. Supersedes the "bubble is not
+replaced" note above. Undo: remove the entries. By: agent (d702926).

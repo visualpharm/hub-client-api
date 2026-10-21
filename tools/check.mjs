@@ -99,6 +99,11 @@ export function checkSendCorrection(contract, answer) {
   return diff(answer, contract.answers.send_correction, "send_correction");
 }
 
+/** Связь поправки, не вошедшей в снимок (GET /api/correction-ref?message=mN, feature send.correction.replaces): {replaces, session}. */
+export function checkCorrectionRef(contract, answer) {
+  return diff(answer, contract.answers.correction_ref, "correction_ref");
+}
+
 /** Пути и поля запросов клиента (после правила request) — есть ли они в коде хаба. */
 /** Код страницы хаба и модулей, чьи поля она передаёт дальше как есть (сниппеты разбирают op в своём модуле). */
 export const coreCode = (dir) => ["web", "snippets"].map((m) => path.join(dir, "modules", m)).filter((d) => fs.existsSync(d))
@@ -139,7 +144,16 @@ async function checkHub(contract, rules, base) {
   if ((snap.features || []).includes("snippets")) {   // набор сниппетов — живой ответ, в виде договора
     checkSnippets(contract, await json(`${base}/api/snippets?lang=en`)).forEach((p) => out.includes(p) || out.push(p));
   }
-  return { out, note: `хаб ${snap.version || "?"}, сессий в сверке: ${names.length}` };
+  let refs = "";
+  if ((snap.features || []).includes("send.correction.replaces")) {   // только чтение: ручку спрашиваем о связи из снимка
+    const links = snap.correction_refs && typeof snap.correction_refs === "object" ? Object.keys(snap.correction_refs) : [];
+    refs = `, связей поправок в снимке: ${links.length}`;
+    if (links.length) {
+      const answer = await json(`${base}/api/correction-ref?${new URLSearchParams({ message: links[0] })}`);
+      checkCorrectionRef(contract, answer).forEach((p) => out.includes(p) || out.push(p));
+    }
+  }
+  return { out, note: `хаб ${snap.version || "?"}, сессий в сверке: ${names.length}${refs}` };
 }
 
 async function main(argv) {

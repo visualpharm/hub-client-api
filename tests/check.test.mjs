@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkCore, checkSendAgent, checkSendAudit, checkSendCorrection, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
+import { checkCore, checkCorrectionRef, checkSendAgent, checkSendAudit, checkSendCorrection, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const contract = JSON.parse(fs.readFileSync(path.join(root, "contract", "v1.json"), "utf8"));
@@ -480,11 +480,42 @@ test("поправка к отправленному: запрос — необ�
   assert.equal(r.optional, true);
   assert.equal(r.feature, "send.correction");
   assert.equal(r.owner, true);
-  assert.deepEqual(r.body, ["session", "text", "quote", "client_id"]);
-  assert.deepEqual(v1.request({ method: "POST", path: r.path, query: {}, body: { session: "a", text: "b", quote: "c" } }).body,
-                   { session: "a", text: "b", quote: "c" }, "правила тело поправки не трогают");
+  assert.deepEqual(r.body, ["session", "text", "quote", "client_id", "replaces"]);
+  assert.ok(r.absent && r.absent.replaces, "replaces — поле edit-message 0.2.0: у прежних выпусков его нет");
+  assert.deepEqual(v1.request({ method: "POST", path: r.path, query: {}, body: { session: "a", text: "b", quote: "c", replaces: "m3" } }).body,
+                   { session: "a", text: "b", quote: "c", replaces: "m3" }, "правила тело поправки не трогают");
   assert.deepEqual(checkSendCorrection(contract, { ok: true, seq: 10 }), []);
   assert.deepEqual(checkSendCorrection(contract, { ok: true, queued: true }), []);
   assert.deepEqual(checkSendCorrection(contract, { seq: 10 }), ["send_correction.ok: нет поля (boolean)"]);
   assert.deepEqual(checkSendCorrection(contract, { ok: true, seq: "10" }), ["send_correction.seq: string вместо number"]);
+});
+
+test("связь поправки с исходным (edit-message 0.2.0, feature send.correction.replaces): ключ снимка, ручка и её ответ; без обязательного поля сверка называет его", () => {
+  assert.ok(contract.snapshot.correction_refs, "snapshot.correction_refs есть в договоре");
+  const s = { ...snapshot(), features: ["push", "send.correction", "send.correction.replaces"],
+              correction_refs: { m7: { replaces: "m3", session: "example" }, m9: { replaces: "m3", session: "example" } } };
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  assert.deepEqual(checkSnapshot(contract, v1, { ...s, correction_refs: {} }), [], "связей нет (или не доказаны) — пустой объект");
+  assert.deepEqual(checkSnapshot(contract, v1, snapshot()), [], "хаб без модуля 0.2.0 — ключа нет вовсе");
+  assert.equal(v1.snapshot(s).correction_refs.m7.replaces, "m3", "правила связь не трогают");
+  delete s.correction_refs.m7.replaces;
+  delete s.correction_refs.m9.session;
+  assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.correction_refs.*.replaces: нет поля (string)",
+                                                    "snapshot.correction_refs.*.session: нет поля (string)"]);
+  s.correction_refs = { m7: { replaces: 3, session: "example" } };
+  assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.correction_refs.*.replaces: number вместо string"]);
+  s.correction_refs = [{ replaces: "m3", session: "example" }];
+  assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.correction_refs: array вместо object"]);
+
+  const r = contract.requests.find((x) => x.method === "GET" && x.path === "/api/correction-ref");
+  assert.ok(r, "GET /api/correction-ref есть в договоре");
+  assert.equal(r.optional, true);
+  assert.equal(r.feature, "send.correction.replaces");
+  assert.equal(r.owner, true);
+  assert.deepEqual(r.query, ["message"]);
+  assert.equal(r.probe, undefined, "живой пробы вслепую нет: на выдуманный id ручка честно отвечает 404");
+  assert.deepEqual(checkCorrectionRef(contract, { replaces: "m3", session: "example" }), []);
+  assert.deepEqual(checkCorrectionRef(contract, { replaces: "m3" }), ["correction_ref.session: нет поля (string)"]);
+  assert.deepEqual(checkCorrectionRef(contract, { session: "example" }), ["correction_ref.replaces: нет поля (string)"]);
+  assert.deepEqual(checkCorrectionRef(contract, { replaces: "m3", session: 1 }), ["correction_ref.session: number вместо string"]);
 });
