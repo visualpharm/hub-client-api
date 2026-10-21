@@ -72,3 +72,10 @@ queued, duplicate) and the module row in the feed (kind `in`: channel `plugin`, 
 an author when sender is empty. Clients tell the module row from the owner's words by from.kind == module or the mod: prefix and show it as an incoming
 word from agent X. Why: hub-ios sends the Mac crash report there instead of /api/send with a foreign agent field (it was recorded as the owner's word).
 Undo: remove the entries. By: agent (d649984).
+
+## 2026-10-21 · send.correction (edit-message) in the contract without a rules release
+Decided: describe POST /api/send/correction (optional, feature `send.correction`, owner only; body session, text, quote, client_id) and its
+answer (answers.send_correction: ok, seq, queued) in contract/v1.json, as the module edit-message serves it (403 not owner, 400 body,
+409 core refused). v1.js rules and rev stay: the body passes unchanged; the existing /api/send rule still drops `correction` for cores that
+lose it. The bubble of the original message is not replaced (that needs snapshot.correction_refs, in progress at hub-dev). Why: native
+clients already send corrections there (Store+Correction.swift). Undo: remove the entries. By: agent (d684654).
