@@ -1,5 +1,13 @@
 # Changes
 
+## Unreleased (API 1, rules rev 5)
+
+The contract describes the thread of a To-do item (hubbahub-todo-own 0.8.0):
+snapshot.todo[].thread and snapshot.todo_done[].thread are optional lists of feed
+row numbers (seq) in the item's session: the owner's words from the item's field
+and the session's reply. A reply from the field closes only an item of kind
+asked; action and review stay open until ticked. No rule change in v1.js.
+
 ## 2026-10-20 · 1.1.5 (API 1, rules rev 5)
 
 The contract describes three optional module additions on flagman hubs: send

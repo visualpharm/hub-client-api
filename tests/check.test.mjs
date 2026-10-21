@@ -278,6 +278,18 @@ test("аккаунты расхода, hints_seen и новые пути: все
   assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.accounts.pool[].name: нет поля (string)", "snapshot.hints_seen[]: number вместо string"]);
 });
 
+test("тред пункта To-do: todo[].thread и todo_done[].thread — список seq, необязателен; нет поля — проходит", () => {
+  const s = { ...snapshot(), todo: [{ id: "t:12", kind: "action", session: "hub-dev", title: "Проверь", since: 1 }],
+              todo_done: [{ id: "t:7", kind: "asked", session: "hub-dev", title: "Готово", since: 1, done_at: 2 }] };
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  s.todo[0].thread = [655101, 655140];
+  s.todo_done[0].thread = [];
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  s.todo[0].thread = "655101";
+  s.todo_done[0].thread = ["655101"];
+  assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.todo[].thread: string вместо array", "snapshot.todo_done[].thread[]: string вместо number"]);
+});
+
 test("sidebar_hidden, space_bookmarks, quote у строки и их пути: необязательны; есть и нет — проходит", () => {
   for (const [path, feature] of [["/api/sidebar/hidden", "sidebar.hidden"], ["/api/space/bookmarks", "space.bookmarks"],
                                  ["/api/space/bookmarks/remove", "space.bookmarks"], ["/api/space/open", "space.bookmarks"]]) {
