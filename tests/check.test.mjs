@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkCore, checkSendAgent, checkSendAudit, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
+import { checkCore, checkSendAgent, checkSendAudit, checkSendCorrection, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const contract = JSON.parse(fs.readFileSync(path.join(root, "contract", "v1.json"), "utf8"));
@@ -460,4 +460,19 @@ test("слова от имени агента: запрос — необязат
   assert.equal(out.from.kind, "module");
   t.items.at(-1).from = "codex";
   assert.deepEqual(checkTimeline(contract, v1, t), ["timeline.items[in].from: string вместо object"]);
+});
+
+test("поправка к отправленному: запрос — необязательный, по feature send.correction, только владелец; ответ в виде договора", () => {
+  const r = contract.requests.find((x) => x.method === "POST" && x.path === "/api/send/correction");
+  assert.ok(r, "POST /api/send/correction есть в договоре");
+  assert.equal(r.optional, true);
+  assert.equal(r.feature, "send.correction");
+  assert.equal(r.owner, true);
+  assert.deepEqual(r.body, ["session", "text", "quote", "client_id"]);
+  assert.deepEqual(v1.request({ method: "POST", path: r.path, query: {}, body: { session: "a", text: "b", quote: "c" } }).body,
+                   { session: "a", text: "b", quote: "c" }, "правила тело поправки не трогают");
+  assert.deepEqual(checkSendCorrection(contract, { ok: true, seq: 10 }), []);
+  assert.deepEqual(checkSendCorrection(contract, { ok: true, queued: true }), []);
+  assert.deepEqual(checkSendCorrection(contract, { seq: 10 }), ["send_correction.ok: нет поля (boolean)"]);
+  assert.deepEqual(checkSendCorrection(contract, { ok: true, seq: "10" }), ["send_correction.seq: string вместо number"]);
 });

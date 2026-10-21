@@ -94,6 +94,11 @@ export function checkSendAgent(contract, answer) {
   return diff(answer, contract.answers.send_agent, "send_agent");
 }
 
+/** Ответ поправки к отправленному (POST /api/send/correction, feature send.correction). Живой пробы нет: запрос пишет в ленту сессии. */
+export function checkSendCorrection(contract, answer) {
+  return diff(answer, contract.answers.send_correction, "send_correction");
+}
+
 /** Пути и поля запросов клиента (после правила request) — есть ли они в коде хаба. */
 /** Код страницы хаба и модулей, чьи поля она передаёт дальше как есть (сниппеты разбирают op в своём модуле). */
 export const coreCode = (dir) => ["web", "snippets"].map((m) => path.join(dir, "modules", m)).filter((d) => fs.existsSync(d))
