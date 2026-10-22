@@ -88,3 +88,10 @@ optional body field `replaces` of POST /api/send/correction (absent before 0.2.0
 version-1 shape, older hubs simply lack the key and the feature, and the client itself validates and joins links (hub-ios
 PublicFeed+Correction.swift since 69d5c0ad); a filtering rule would duplicate that and need a plugin release. Supersedes the "bubble is not
 replaced" note above. Undo: remove the entries. By: agent (d702926).
+
+## 2026-10-22 · client.metrics (hubbahub-client-metrics) in the contract without a rules release
+Decided: describe POST /api/client/metrics (optional, feature `client.metrics`, owner only; body client_id, client, version, build, kind,
+payload) and its answer (answers.client_metrics: ok, id, duplicate) as the module hubbahub-client-metrics 0.1.0 serves it (403 not owner,
+400 body with the field name first, 413 over 8 MB, 503 disk). v1.js rules and rev stay: the body passes unchanged (checked in the test).
+Why: the iPhone and Mac apps send MetricKit reports there (Ivan's decision q725487; hub-ios ClientMetrics). Undo: remove the entries.
+By: agent (d730480).

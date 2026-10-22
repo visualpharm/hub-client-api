@@ -2,6 +2,14 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+The contract describes device telemetry (module hubbahub-client-metrics, feature
+client.metrics): POST /api/client/metrics {client_id, client, version, build,
+kind, payload} sends a MetricKit report from the iPhone or Mac app, owner only;
+202 {ok, id}, a repeated client_id returns the same id with duplicate: true.
+400 and 413 are final for that report; 503 and network failures are retried with
+the same client_id. Clients send nothing without the feature. No rule change in
+v1.js.
+
 The contract describes the link between a correction and the original message
 (edit-message 0.2.0, feature send.correction.replaces): POST /api/send/correction
 takes an optional replaces (exact original id mN); the snapshot key

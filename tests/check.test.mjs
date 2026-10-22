@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkCore, checkCorrectionRef, checkSendAgent, checkSendAudit, checkSendCorrection, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
+import { checkClientMetrics, checkCore, checkCorrectionRef, checkSendAgent, checkSendAudit, checkSendCorrection, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const contract = JSON.parse(fs.readFileSync(path.join(root, "contract", "v1.json"), "utf8"));
@@ -449,6 +449,21 @@ test("сверка отправок: запрос — необязательны
   assert.deepEqual(checkSnapshot(contract, v1, s), []);
   delete s.send_audit.last_missing[0].client_id;
   assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.send_audit.last_missing[].client_id: нет поля (string)"]);
+});
+
+test("телеметрия устройства: запрос — необязательный, по feature client.metrics, только владелец; ответ {ok, id} и duplicate", () => {
+  const r = contract.requests.find((x) => x.method === "POST" && x.path === "/api/client/metrics");
+  assert.ok(r, "POST /api/client/metrics есть в договоре");
+  assert.equal(r.optional, true);
+  assert.equal(r.feature, "client.metrics");
+  assert.equal(r.owner, true);
+  assert.deepEqual(r.body, ["client_id", "client", "version", "build", "kind", "payload"]);
+  const id = "2026-10-22/ios-1.85-1/ios-metric-3f2a";
+  assert.deepEqual(checkClientMetrics(contract, { ok: true, id }), []);
+  assert.deepEqual(checkClientMetrics(contract, { ok: true, id, duplicate: true }), []);
+  assert.deepEqual(checkClientMetrics(contract, { ok: true }), ["client_metrics.id: нет поля (string)"]);
+  const body = { client_id: "ios-metric-3f2a", client: "ios", version: "1.85", build: "1", kind: "metric", payload: { metaData: {} } };
+  assert.deepEqual(v1.request({ method: "POST", path: "/api/client/metrics", query: {}, body }).body, body, "тело идёт хабу как есть");
 });
 
 test("слова от имени агента: запрос — необязательный, по feature send.agent; ответ в виде договора; строка модуля в ленте не слова владельца", () => {

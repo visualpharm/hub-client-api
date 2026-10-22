@@ -104,6 +104,11 @@ export function checkCorrectionRef(contract, answer) {
   return diff(answer, contract.answers.correction_ref, "correction_ref");
 }
 
+/** Ответ телеметрии устройства (POST /api/client/metrics, feature client.metrics): {ok, id} и duplicate на повтор. Живой пробы нет: запрос пишет запись модуля. */
+export function checkClientMetrics(contract, answer) {
+  return diff(answer, contract.answers.client_metrics, "client_metrics");
+}
+
 /** Пути и поля запросов клиента (после правила request) — есть ли они в коде хаба. */
 /** Код страницы хаба и модулей, чьи поля она передаёт дальше как есть (сниппеты разбирают op в своём модуле). */
 export const coreCode = (dir) => ["web", "snippets"].map((m) => path.join(dir, "modules", m)).filter((d) => fs.existsSync(d))
