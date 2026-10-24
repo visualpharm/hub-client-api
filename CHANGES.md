@@ -2,6 +2,14 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+The contract describes the shots of a question (feature question.shots): the
+snapshot key question_shots maps an open card id (qN, as in todo[] and
+sessions[].pending[]) to {session, files: [{seq|null, path, url, name,
+caption|null, kind image|video|file, ts, via turn|attach}]}; a closed card leaves
+the key within ~2 s. Clients show image files as thumbnails under the first
+question, before the options, and open them in the gallery. No rule change in
+v1.js.
+
 The contract describes device telemetry (module hubbahub-client-metrics, feature
 client.metrics): POST /api/client/metrics {client_id, client, version, build,
 kind, payload} sends a MetricKit report from the iPhone or Mac app, owner only;

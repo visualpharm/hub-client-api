@@ -95,3 +95,9 @@ payload) and its answer (answers.client_metrics: ok, id, duplicate) as the modul
 400 body with the field name first, 413 over 8 MB, 503 disk). v1.js rules and rev stay: the body passes unchanged (checked in the test).
 Why: the iPhone and Mac apps send MetricKit reports there (Ivan's decision q725487; hub-ios ClientMetrics). Undo: remove the entries.
 By: agent (d730480).
+
+## 2026-10-24 · question_shots (question.shots) in the contract without a rules release
+Decided: describe the optional snapshot key question_shots {qN: {session!, files: [{path!, url!, name, seq, caption, kind, ts, via}]}}
+as the hub serves it (feature `question.shots`; live hub declares it). v1.js rules and rev stay: the key passes unchanged (checked in
+the test) and the clients join it to the open card by id themselves (hub-ios PublicFeed+QuestionShots). Why: Ivan m811185 — shots of
+the question inside the card on iPhone and Mac, as on the page. Undo: remove the entries. By: agent (d812830).

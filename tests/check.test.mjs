@@ -534,3 +534,19 @@ test("связь поправки с исходным (edit-message 0.2.0, featu
   assert.deepEqual(checkCorrectionRef(contract, { session: "example" }), ["correction_ref.replaces: нет поля (string)"]);
   assert.deepEqual(checkCorrectionRef(contract, { replaces: "m3", session: 1 }), ["correction_ref.session: number вместо string"]);
 });
+
+test("кадры вопроса (feature question.shots): ключ снимка question_shots необязателен, у открытой карточки — session и файлы с path и url", () => {
+  assert.ok(contract.snapshot.question_shots, "snapshot.question_shots есть в договоре");
+  const file = { seq: 7, path: "/tmp/a.png", url: "/api/file?path=%2Ftmp%2Fa.png", name: "a.png", caption: null, kind: "image", ts: 5, via: "turn" };
+  const s = { ...snapshot(), features: ["push", "question.shots"], question_shots: { q1: { session: "hub", files: [file, { ...file, seq: null, kind: "video", via: "attach" }] } } };
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  assert.deepEqual(checkSnapshot(contract, v1, { ...s, question_shots: {} }), [], "открытых карточек с кадрами нет — пустой объект");
+  assert.deepEqual(checkSnapshot(contract, v1, snapshot()), [], "хаб без модуля — ключа нет вовсе");
+  assert.equal(v1.snapshot(s).question_shots.q1.files.length, 2, "правила кадры не трогают");
+  s.question_shots.q1.files[0] = { ...file, path: undefined };
+  s.question_shots.q1.files[1] = { ...file, url: 3 };
+  assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.question_shots.*.files[].path: нет поля (string)",
+                                                    "snapshot.question_shots.*.files[].url: number вместо string"]);
+  s.question_shots = { q1: { files: [] } };
+  assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.question_shots.*.session: нет поля (string)"]);
+});
