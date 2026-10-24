@@ -22,7 +22,8 @@ import { fileURLToPath } from "node:url";
 import { checkCore, coreCode, loadRules } from "./check.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const OWNER_CHANNELS = ["web", "cli", "telegram"];
+// Голосовое владельца с клиента отправляет модуль hubbahub-voice-own: owner:true, канал модуля. Другие mod:* — не владелец.
+const OWNER_CHANNELS = ["web", "cli", "telegram", "mod:hubbahub-voice-own"];
 
 // Виды автора поля from (ядро, API 1.26), которые не владелец: такая строка служебная, каким бы каналом ни пришла
 const NOT_OWNER = ["core", "hub", "schedule", "session", "module", "plugin"];

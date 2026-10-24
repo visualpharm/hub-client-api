@@ -357,6 +357,22 @@ test("журнал: слово спящему исполнителю ядро о
   assert.deepEqual(checkJournal(msgs, lines, states), []);
 });
 
+test("журнал: голосовое владельца через модуль hubbahub-voice-own — его слова; другой модуль с owner — нет", () => {
+  const voice = said(818418, "hub-core", { channel: "mod:hubbahub-voice-own", voice_id: "v1",
+                                           attachments: [{ name: "voice.m4a", mime: "audio/mp4" }] });
+  const other = said(818419, "hub-core", { channel: "mod:hubbahub-other" });
+  const [m, o] = messagesOf([voice, other]);
+  assert.equal(m.owner, true);
+  assert.equal(o.owner, false);
+  const lines = { "hub-core": [{ kind: "in", id: "m818418", seq: 818418 }, { kind: "in", id: "m818419", seq: 818419 }] };
+  const out = checkJournal([m, o], lines, { m818418: { state: "delivered" }, m818419: { state: "delivered" } });
+  assert.equal(out.length, 1);
+  assert.match(out[0], /m818419 \(канал mod:hubbahub-other\) — не слова владельца/);
+  // живая лента: строка канала модуля голоса без автора — слово владельца, не расхождение
+  const raw = { items: [{ kind: "in", id: "m818418", seq: 818418, channel: "mod:hubbahub-voice-own", sender: null, text: "x" }] };
+  assert.deepEqual(checkLive("hub-core", raw, raw), []);
+});
+
 test("журнал: настоящая потеря — принято, никому не отдано и нет в ленте; доставлено адресату, а в ленте нет", () => {
   const events = [
     said(700001, "shopper"),                                         // принято и потеряно

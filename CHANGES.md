@@ -2,6 +2,10 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+The watch check counts a voice message from the client, sent by the module
+hubbahub-voice-own (owner: true, channel mod:hubbahub-voice-own), as the owner's
+words; other mod:* channels stay non-owner. No rule change in v1.js.
+
 The contract describes the shots of a question (feature question.shots): the
 snapshot key question_shots maps an open card id (qN, as in todo[] and
 sessions[].pending[]) to {session, files: [{seq|null, path, url, name,
