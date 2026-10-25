@@ -566,3 +566,17 @@ test("кадры вопроса (feature question.shots): ключ снимка 
   s.question_shots = { q1: { files: [] } };
   assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.question_shots.*.session: нет поля (string)"]);
 });
+
+test("аккаунты пула (модуль hubbahub-accounts-live): accounts_machine и accounts_meta необязательны, почта в пуле — строка", () => {
+  assert.ok(contract.snapshot.accounts_machine, "snapshot.accounts_machine есть в договоре");
+  assert.ok(contract.snapshot.accounts_meta, "snapshot.accounts_meta есть в договоре");
+  const s = { ...snapshot(), features: ["push", "accounts.machine", "accounts.meta"],
+    accounts: { pool: [{ name: "work-claude", email: "me@example.com" }, { name: "spare" }], on: false },
+    accounts_machine: { account: "work-claude", how: "org" },
+    accounts_meta: { "work-claude": { email: "me@example.com", plan: "max", how: "machine" }, spare: { email: "team@example.com", how: "manual", by: "hub", at: 1792500000 } } };
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  assert.deepEqual(checkSnapshot(contract, v1, snapshot()), [], "хаб без модуля — ключей нет вовсе");
+  assert.deepEqual(checkSnapshot(contract, v1, { ...s, accounts_machine: { how: "reset" } }), ["snapshot.accounts_machine.account: нет поля (string)"]);
+  assert.deepEqual(checkSnapshot(contract, v1, { ...s, accounts_meta: { spare: { email: 3 } } }), ["snapshot.accounts_meta.*.email: number вместо string"]);
+  assert.deepEqual(checkSnapshot(contract, v1, { ...s, accounts: { pool: [{ name: "a", email: 1 }] } }), ["snapshot.accounts.pool[].email: number вместо string"]);
+});

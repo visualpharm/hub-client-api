@@ -2,6 +2,15 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+The contract describes the pool account keys of the module hubbahub-accounts-live
+(both optional): accounts_machine {account, how: org|reset} (feature
+accounts.machine) names the pool account that is this computer's login, and
+accounts_meta {name: {email, plan, how, by, at}} (feature accounts.meta) labels
+pool accounts; accounts.pool[].email is an optional string. Clients show the
+computer login quota as that account's page instead of a separate "computer
+login" page, and the account email from the pool first, accounts_meta second.
+No rule change in v1.js.
+
 The watch check counts a voice message from the client, sent by the module
 hubbahub-voice-own (owner: true, channel mod:hubbahub-voice-own), as the owner's
 words; other mod:* channels stay non-owner. No rule change in v1.js.
