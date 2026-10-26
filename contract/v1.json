@@ -112,6 +112,9 @@
       "level": "number",
       "since": "number"
     },
+    "inbox_waiting": {
+      "count!": "number"
+    },
     "extensions": [
       {
         "name": "string!",

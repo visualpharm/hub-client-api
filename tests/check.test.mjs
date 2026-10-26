@@ -595,3 +595,11 @@ test("закрытые карточки sessions[].answered: необязате�
   wrong.sessions[0].answered = ["r0"];
   assert.notDeepEqual(checkSnapshot(contract, v1, wrong), []);
 });
+
+test("счёт Inbox inbox_waiting (модуль hubbahub-inbox-count): необязателен — ядро без модуля и мок без него; в объекте count — число", () => {
+  assert.deepEqual(checkSnapshot(contract, v1, snapshot()), []);
+  for (const count of [0, 3]) assert.deepEqual(checkSnapshot(contract, v1, { ...snapshot(), inbox_waiting: { count } }), []);
+  assert.deepEqual(checkSnapshot(contract, v1, { ...snapshot(), inbox_waiting: {} }), ["snapshot.inbox_waiting.count: нет поля"]);
+  assert.deepEqual(checkSnapshot(contract, v1, { ...snapshot(), inbox_waiting: { count: "0" } }), ["snapshot.inbox_waiting.count: string вместо number"]);
+  assert.notDeepEqual(checkSnapshot(contract, v1, { ...snapshot(), inbox_waiting: 0 }), []);
+});
