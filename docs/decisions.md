@@ -109,3 +109,6 @@ failure, pausing 15 s (20 s after a network failure); the hub's Retry-After is a
 machine load 130–190 the hub answered `/api/timeline?…&since=0` with 503 after its 15 s deadline and the next request succeeded —
 about eight false alarms a day. Worst added time is about 30 s per refused request, well inside the scheduled run limit. Undo: revert
 the commit (back to one retry after 45 s on a network failure only). By: agent (d1026402).
+Extended the same day: `patient` (the check of client calls) retries up to twice on silence and on 502/503/504 with the same
+pause rules (15 s, Retry-After as a lower bound, at most 60 s; the retry waits up to 30 s for the answer); before, it retried silence
+once after 45 s and reported 503 at once. Worst added time per dead probe: about 90 s. Undo: revert that commit.

@@ -2,7 +2,15 @@
 import assert from "node:assert/strict";
 import http from "node:http";
 import test from "node:test";
-import { PAUSE_MS, get, pauseFor } from "../tools/watch.mjs";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { loadRules } from "../tools/check.mjs";
+import { PAUSE_MS, checkCalls, get, patient, pauseFor, probe } from "../tools/watch.mjs";
+
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const contract = JSON.parse(fs.readFileSync(path.join(root, "contract", "v1.json"), "utf8"));
+const v1 = loadRules(path.join(root, "v1.js"));
 
 /** Подставной хаб: отвечает кодами по порядку, последний — повторяется. */
 async function hub(codes, headers = {}) {
@@ -77,4 +85,43 @@ test("Retry-After: секунды и дата уважаются, но в пре
   assert.equal(pauseFor("мусор"), 15000);
   const at = pauseFor(new Date(Date.now() + 30000).toUTCString());
   assert.ok(at > 25000 && at <= 30000, String(at));
+});
+
+test("проверка вызовов (patient): 503 и молчание — до двух повторов, потом ответ как есть; 404 — сразу", async () => {
+  const run = async (codes, retryAfter = null) => {
+    const asked = [], waits = [];
+    const ask = async (url, ms = 8000) => { asked.push(ms); return { code: codes[Math.min(asked.length - 1, codes.length - 1)], type: "", retryAfter }; };
+    const got = await patient(ask, PAUSE_MS, async (ms) => { waits.push(ms); })("http://hub/api/flow?since=0");
+    return { code: got.code, asked, waits };
+  };
+  assert.deepEqual(await run([503, 200], "1"), { code: 200, asked: [8000, 30000], waits: [PAUSE_MS] });
+  assert.deepEqual(await run([503], "40"), { code: 503, asked: [8000, 30000, 30000], waits: [40000, 40000] });
+  assert.deepEqual(await run([0, 0, 200]), { code: 200, asked: [8000, 30000, 30000], waits: [PAUSE_MS, PAUSE_MS] });
+  assert.deepEqual(await run([0]), { code: 0, asked: [8000, 30000, 30000], waits: [PAUSE_MS, PAUSE_MS] });
+  assert.deepEqual(await run([404, 200]), { code: 404, asked: [8000], waits: [] });
+  assert.deepEqual(await run([500, 200]), { code: 500, asked: [8000], waits: [] });
+});
+
+test("проверка вызовов на подставном хабе: /api/flow 503, потом 200 — расхождения нет; 503 всегда — есть", async () => {
+  const serve = async (busy) => {
+    let n = 0;
+    const server = http.createServer((req, res) => {
+      if (req.url.startsWith("/api/flow") && (busy === Infinity || n++ < busy)) {
+        res.writeHead(503, { "Retry-After": "1" }); return res.end("занят");
+      }
+      const p = req.url;
+      res.writeHead(200, { "Content-Type": p === "/" ? "text/html" : p.startsWith("/api/stream") ? "text/event-stream" : p.endsWith(".js") ? "text/javascript" : "application/json" });
+      res.end(p.endsWith(".js") ? "" : "{}");
+    });
+    await new Promise((done) => server.listen(0, "127.0.0.1", done));
+    return { base: `http://127.0.0.1:${server.address().port}`, close: () => { server.closeAllConnections(); return new Promise((done) => server.close(done)); } };
+  };
+  const snap = { sessions: [{ name: "hub", kind: "hub" }], extensions: [] };
+  for (const [busy, bad] of [[1, false], [Infinity, true]]) {
+    const h = await serve(busy);
+    try {
+      const out = await checkCalls(h.base, contract, v1, snap, probe, 0);
+      assert.equal(out.some((p) => p.includes("/api/flow") && p.includes("503")), bad, out.join("\n"));
+    } finally { await h.close(); }
+  }
 });

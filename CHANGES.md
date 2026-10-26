@@ -7,7 +7,10 @@ twice on 502, 503, 504 or a network failure, pausing 15 s (20 s after a network
 failure; a longer Retry-After up to 60 s is honoured), and reports a problem only
 if the hub still refuses. Under heavy machine load the hub answers a feed with 503
 when it misses its own deadline, and the next request a few seconds later
-succeeds. Other codes are reported at once, as before. No rule change in v1.js.
+succeeds. The check of client calls (contract requests, page and plugin files,
+their data requests and streams) retries the same way on 502, 503, 504 and on
+silence, waiting longer for the answer on a retry. Other codes are reported at
+once, as before. No rule change in v1.js.
 
 The contract describes the pool account keys of the module hubbahub-accounts-live
 (both optional): accounts_machine {account, how: org|reset} (feature

@@ -199,14 +199,26 @@ export function checkJournal(messages, lines, states = {}) {
   return out;
 }
 
+/** Временный отказ хаба: 502/503/504 (под нагрузкой машины лента не укладывается в срок сервера — 503, повтор через
+ *  секунды отвечает) и сетевой сбой (хаб перезапускается). До двух повторов с паузой; молчит и тогда — расхождение.
+ *  Retry-After хаба (1 с) — нижняя граница сверх паузы: повтор через секунду под той же нагрузкой снова 503. */
+const BUSY = [502, 503, 504];
+export const RETRIES = 2, PAUSE_MS = 15000, NET_PAUSE_MS = 20000, MAX_PAUSE_MS = 60000;
+const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+export function pauseFor(retryAfter, base = PAUSE_MS) {
+  const sec = Number(retryAfter);
+  const asked = Number.isFinite(sec) && String(retryAfter).trim() !== "" ? sec * 1000 : Date.parse(retryAfter) - Date.now();
+  return Math.min(MAX_PAUSE_MS, Math.max(base, Number.isFinite(asked) ? asked : 0));
+}
+
 /** Отвечает ли адрес: код и тип; поток — только заголовки (тело не ждём). */
-async function probe(url, ms = 8000) {
+export async function probe(url, ms = 8000) {
   const stop = new AbortController(), timer = setTimeout(() => stop.abort(), ms);
   try {
     const r = await fetch(url, { headers: { "X-Hub": "1", "X-Hub-Api": "1" }, signal: stop.signal });
     // 404 бывает и у живого пути («нет такой сессии»): пути нет — только когда хаб так и говорит
     const lost = r.status === 404 ? (await r.text()).includes("нет такой страницы") : false;
-    return { code: r.status, type: r.headers.get("content-type") || "", lost };
+    return { code: r.status, type: r.headers.get("content-type") || "", lost, retryAfter: r.headers.get("retry-after") };
   } catch (e) {
     return { code: 0, type: String(e.message) };
   } finally {
@@ -216,14 +228,17 @@ async function probe(url, ms = 8000) {
 
 /** Каждый вызов клиентов против живого хаба: запросы договора (после правила request) и то, что просят страницы
  *  разделов, открытые внутри приложений (страница хаба, её поток, модули плагинов и их запросы данных). */
-/** Молчание хаба — ещё не расхождение: после перезапуска web первый запрос холодный (история потока — до 30 с), под
- *  нагрузкой ответ не укладывается в срок. Один повтор через паузу; молчит и тогда — сообщаем. */
+/** Молчание хаба и 502/503/504 — ещё не расхождение: после перезапуска web первый запрос холодный (история потока —
+ *  до 30 с), под нагрузкой ответ не укладывается в срок (хаб сам отвечает 503). До двух повторов через паузу (как у
+ *  get: Retry-After — не короче паузы, до 60 с); повтор после молчания ждёт ответа дольше. Не ответил и тогда — сообщаем. */
 const RETRY_MS = 30000;   // повтор ждёт дольше: под нагрузкой машины (14.10, load ~250) живой хаб отвечал за 10–17 с
-export const patient = (ask, pause = 45000) => async (url) => {
-  const got = await ask(url);
-  if (got.code !== 0) return got;
-  await new Promise((r) => setTimeout(r, pause));
-  return ask(url, RETRY_MS);
+export const patient = (ask, pause = PAUSE_MS, wait = sleep) => async (url) => {
+  let got = await ask(url);
+  for (let left = RETRIES; left > 0 && (got.code === 0 || BUSY.includes(got.code)); left--) {
+    await wait(got.code === 0 ? pause : pauseFor(got.retryAfter, pause));
+    got = await ask(url, RETRY_MS);
+  }
+  return got;
 };
 
 /** Вызовы fetch к /api/ в исходнике страницы: адрес (подстановки ${…} — нулём) и метод из второго аргумента. */
@@ -259,7 +274,7 @@ export function pageCalls(who, src, code = []) {
   return { gets, missing };
 }
 
-export async function checkCalls(base, contract, rules, snap, ask0 = probe, pause = 45000, code = []) {
+export async function checkCalls(base, contract, rules, snap, ask0 = probe, pause = PAUSE_MS, code = []) {
   const ask = patient(ask0, pause);
   const out = [];
   const hub = ((snap.sessions || []).find((s) => s.kind === "hub") || {}).name || "";
@@ -294,18 +309,6 @@ export async function checkCalls(base, contract, rules, snap, ask0 = probe, paus
     }
   }
   return out;
-}
-
-/** Временный отказ хаба: 502/503/504 (под нагрузкой машины лента не укладывается в срок сервера — 503, повтор через
- *  секунды отвечает) и сетевой сбой (хаб перезапускается). До двух повторов с паузой; молчит и тогда — расхождение.
- *  Retry-After хаба (1 с) — нижняя граница сверх паузы: повтор через секунду под той же нагрузкой снова 503. */
-const BUSY = [502, 503, 504];
-export const RETRIES = 2, PAUSE_MS = 15000, NET_PAUSE_MS = 20000, MAX_PAUSE_MS = 60000;
-const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
-export function pauseFor(retryAfter, base = PAUSE_MS) {
-  const sec = Number(retryAfter);
-  const asked = Number.isFinite(sec) && String(retryAfter).trim() !== "" ? sec * 1000 : Date.parse(retryAfter) - Date.now();
-  return Math.min(MAX_PAUSE_MS, Math.max(base, Number.isFinite(asked) ? asked : 0));
 }
 
 export async function get(url, text = false, { tries = RETRIES, wait = sleep } = {}) {
@@ -363,7 +366,7 @@ async function main(argv) {
     }
     const contract = JSON.parse(fs.readFileSync(path.join(here, "..", "contract", "v1.json"), "utf8"));
     const cores = argv.flatMap((a, i) => (a === "--core" ? [argv[i + 1]] : []));
-    problems.push(...await checkCalls(base, contract, rules, view, probe, 45000, cores.map(coreCode)));
+    problems.push(...await checkCalls(base, contract, rules, view, probe, PAUSE_MS, cores.map(coreCode)));
     for (const dir of cores) {
       problems.push(...checkCore(contract, rules, dir).map((p) => `код хаба ${dir}: ${p}`));
     }
