@@ -101,3 +101,11 @@ Decided: describe the optional snapshot key question_shots {qN: {session!, files
 as the hub serves it (feature `question.shots`; live hub declares it). v1.js rules and rev stay: the key passes unchanged (checked in
 the test) and the clients join it to the open card by id themselves (hub-ios PublicFeed+QuestionShots). Why: owner's request — shots of
 the question inside the card on iPhone and Mac, as on the page. Undo: remove the entries. By: agent (d812830).
+
+## 2026-10-26 · watch retries a busy hub before reporting
+Decided: tools/watch.mjs `get` (snapshot, session feeds, rules and page files) retries up to twice on 502/503/504 and on a network
+failure, pausing 15 s (20 s after a network failure); the hub's Retry-After is a lower bound only above that pause (the hub sends
+`Retry-After: 1`, and a retry a second later under the same load fails again), capped at 60 s. Other codes fail at once. Why: under
+machine load 130–190 the hub answered `/api/timeline?…&since=0` with 503 after its 15 s deadline and the next request succeeded —
+about eight false alarms a day. Worst added time is about 30 s per refused request, well inside the scheduled run limit. Undo: revert
+the commit (back to one retry after 45 s on a network failure only). By: agent (d1026402).

@@ -296,17 +296,36 @@ export async function checkCalls(base, contract, rules, snap, ask0 = probe, paus
   return out;
 }
 
-async function get(url, text = false, again = true) {
-  let r;
-  try {
-    r = await fetch(url, { headers: { "X-Hub": "1", "X-Hub-Api": "1" } });
-  } catch (e) {   // хаб перезапускается — один повтор через паузу, как у запросов договора
-    if (!again) throw e;
-    await new Promise((done) => setTimeout(done, 45000));
-    return get(url, text, false);
+/** Временный отказ хаба: 502/503/504 (под нагрузкой машины лента не укладывается в срок сервера — 503, повтор через
+ *  секунды отвечает) и сетевой сбой (хаб перезапускается). До двух повторов с паузой; молчит и тогда — расхождение.
+ *  Retry-After хаба (1 с) — нижняя граница сверх паузы: повтор через секунду под той же нагрузкой снова 503. */
+const BUSY = [502, 503, 504];
+export const RETRIES = 2, PAUSE_MS = 15000, NET_PAUSE_MS = 20000, MAX_PAUSE_MS = 60000;
+const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+export function pauseFor(retryAfter, base = PAUSE_MS) {
+  const sec = Number(retryAfter);
+  const asked = Number.isFinite(sec) && String(retryAfter).trim() !== "" ? sec * 1000 : Date.parse(retryAfter) - Date.now();
+  return Math.min(MAX_PAUSE_MS, Math.max(base, Number.isFinite(asked) ? asked : 0));
+}
+
+export async function get(url, text = false, { tries = RETRIES, wait = sleep } = {}) {
+  for (let left = tries; ; left--) {
+    let r;
+    try {
+      r = await fetch(url, { headers: { "X-Hub": "1", "X-Hub-Api": "1" } });
+    } catch (e) {
+      if (left <= 0) throw e;
+      await wait(NET_PAUSE_MS);
+      continue;
+    }
+    if (BUSY.includes(r.status) && left > 0) {
+      await r.body?.cancel();
+      await wait(pauseFor(r.headers.get("retry-after")));
+      continue;
+    }
+    if (!r.ok) throw new Error(`${url}: ${r.status}`);
+    return text ? r.text() : r.json();
   }
-  if (!r.ok) throw new Error(`${url}: ${r.status}`);
-  return text ? r.text() : r.json();
 }
 
 async function main(argv) {

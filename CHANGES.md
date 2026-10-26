@@ -2,6 +2,13 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+The watch check retries the snapshot, the session feeds and the rules file up to
+twice on 502, 503, 504 or a network failure, pausing 15 s (20 s after a network
+failure; a longer Retry-After up to 60 s is honoured), and reports a problem only
+if the hub still refuses. Under heavy machine load the hub answers a feed with 503
+when it misses its own deadline, and the next request a few seconds later
+succeeds. Other codes are reported at once, as before. No rule change in v1.js.
+
 The contract describes the pool account keys of the module hubbahub-accounts-live
 (both optional): accounts_machine {account, how: org|reset} (feature
 accounts.machine) names the pool account that is this computer's login, and
