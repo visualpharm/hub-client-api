@@ -580,3 +580,18 @@ test("аккаунты пула (модуль hubbahub-accounts-live): accounts_
   assert.deepEqual(checkSnapshot(contract, v1, { ...s, accounts_meta: { spare: { email: 3 } } }), ["snapshot.accounts_meta.*.email: number вместо string"]);
   assert.deepEqual(checkSnapshot(contract, v1, { ...s, accounts: { pool: [{ name: "a", email: 1 }] } }), ["snapshot.accounts.pool[].email: number вместо string"]);
 });
+
+test("закрытые карточки sessions[].answered: необязательны (старое ядро и мок без них); у записи — request_id, seq, sig", () => {
+  assert.deepEqual(checkSnapshot(contract, v1, snapshot()), []);
+  const s = snapshot();
+  s.sessions[0].answered = [{ request_id: "r0", seq: 12, sig: "6d2087c8fdb0" },
+                            { request_id: "r9", seq: 14, sig: "62d01b082e3e", client_id: "C9D0E1F2" }];
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  const bad = snapshot();
+  bad.sessions[0].answered = [{ seq: "12", sig: "x" }];
+  assert.deepEqual(checkSnapshot(contract, v1, bad),
+                   ["snapshot.sessions[].answered[].request_id: нет поля (string)", "snapshot.sessions[].answered[].seq: string вместо number"]);
+  const wrong = snapshot();
+  wrong.sessions[0].answered = ["r0"];
+  assert.notDeepEqual(checkSnapshot(contract, v1, wrong), []);
+});
