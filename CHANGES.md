@@ -2,6 +2,10 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+The watch check counts a correction of the owner's message, sent by the module
+edit-message (POST /api/send/correction, owner: true, channel mod:edit-message), as
+the owner's words, like the voice module below. No rule change in v1.js.
+
 The watch check retries the snapshot, the session feeds and the rules file up to
 twice on 502, 503, 504 or a network failure, pausing 15 s (20 s after a network
 failure; a longer Retry-After up to 60 s is honoured), and reports a problem only

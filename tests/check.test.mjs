@@ -383,6 +383,16 @@ test("журнал: голосовое владельца через модул�
   assert.deepEqual(checkLive("hub-core", raw, raw), []);
 });
 
+test("журнал: правка сообщения владельца через модуль edit-message — его слова", () => {
+  const fix = said(818420, "hub-core", { channel: "mod:edit-message" });
+  const [m] = messagesOf([fix]);
+  assert.equal(m.owner, true);
+  const lines = { "hub-core": [{ kind: "in", id: "m818420", seq: 818420 }] };
+  assert.deepEqual(checkJournal([m], lines, { m818420: { state: "delivered" } }), []);
+  const raw = { items: [{ kind: "in", id: "m818420", seq: 818420, channel: "mod:edit-message", sender: null, text: "x" }] };
+  assert.deepEqual(checkLive("hub-core", raw, raw), []);
+});
+
 test("журнал: настоящая потеря — принято, никому не отдано и нет в ленте; доставлено адресату, а в ленте нет", () => {
   const events = [
     said(700001, "shopper"),                                         // принято и потеряно
