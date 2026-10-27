@@ -290,6 +290,16 @@ test("тред пункта To-do: todo[].thread и todo_done[].thread — сп�
   assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.todo[].thread: string вместо array", "snapshot.todo_done[].thread[]: string вместо number"]);
 });
 
+test("To-do «в процессе» (feature todo.progress, todo-own 0.16.0): todo[].state, progress_at, progress_note — необязательны; есть и нет — проходит, чужой тип — нет", () => {
+  const s = { ...snapshot(), todo: [{ id: "t:31", kind: "action", session: "tile-pin", title: "Order the tiles", since: 1 }] };
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  Object.assign(s.todo[0], { state: "progress", progress_at: 1761550000, progress_note: "Waiting for the quote" });
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  s.todo[0].progress_at = "1761550000";
+  s.todo[0].progress_note = 5;
+  assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.todo[].progress_at: string вместо number", "snapshot.todo[].progress_note: number вместо string"]);
+});
+
 test("sidebar_hidden, space_bookmarks, quote у строки и их пути: необязательны; есть и нет — проходит", () => {
   for (const [path, feature] of [["/api/sidebar/hidden", "sidebar.hidden"], ["/api/space/bookmarks", "space.bookmarks"],
                                  ["/api/space/bookmarks/remove", "space.bookmarks"], ["/api/space/open", "space.bookmarks"]]) {
