@@ -594,7 +594,25 @@
     },
     {
       "method": "POST",
-      "path": "/api/voice"
+      "path": "/api/voice",
+      "body": [
+        "data",
+        "mime",
+        "session"
+      ],
+      "absent": {
+        "session": "нет до ядра PR #301 (voice-failed-keep): адресат записи, ядро до него поле не читает; клиенты шлют всегда"
+      },
+      "errors": {
+        "502": {
+          "error!": "string",
+          "id": "string",
+          "file": "string",
+          "context": "string",
+          "partial": "string"
+        }
+      },
+      "errors_note": "502 — хаб не расшифровал запись (ядро PR #301): error — слова владельцу ru/en без пути к файлу; id — запись; file — /api/voice/failed?id=… (звук владельцу, Range; 403/404 чужим); context — «Для <сессия>: <суть>»; partial — что успело расшифроваться. Ядро до PR #301 отдаёт одно error с путём к файлу на своём диске — клиенты путь не показывают (правила уведомлений). 200 {text} и 422 без изменений."
     },
     {
       "method": "GET",
