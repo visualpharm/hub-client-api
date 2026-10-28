@@ -276,7 +276,27 @@
         ],
         "state": "string",
         "progress_at": "number",
-        "progress_note": "string"
+        "progress_note": "string",
+        "actions": [
+          {
+            "id": "string!",
+            "label": "string",
+            "kind": "string!",
+            "post": {
+              "method": "string",
+              "path": "string",
+              "body": {
+                "id": "string",
+                "session": "string",
+                "todo": "string",
+                "text": "string"
+              },
+              "needs": [
+                "string"
+              ]
+            }
+          }
+        ]
       }
     ],
     "todo_done": [

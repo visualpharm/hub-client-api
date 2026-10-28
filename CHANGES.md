@@ -16,6 +16,17 @@ schedule:<name>, core…), for a question or tool request the session; alerts[].
 The clients show it as the second line of the notification when it is not there yet and fall back to the
 payload's top-level session when a hub sends no hub.sender. No rule change in v1.js.
 
+A To-do row (snapshot.todo, GET /api/mod/hubbahub-todo-own/open and /later) of todo-own
+0.25.0 (feature todo.actions) ends with actions [{id, label, kind later|selfdo, post
+{method, path, body, needs}}], ready requests for the row buttons; labels follow the
+owner's language (ru, es, else en). There is no "done" action: the client has the
+checkbox (POST /api/todo/done). later: POST /api/mod/hubbahub-todo-own/later with body
+{id} plus when (text or epoch) chosen by the client (post.needs ["when"]); any row.
+selfdo: POST /api/send {session, todo, text} puts the owner's words into the item's
+thread and sends them to the author session; only for action and asked rows of a
+session that are not in progress, never for review rows or hub blockers. No rule
+change in v1.js.
+
 The watch check counts a correction of the owner's message, sent by the module
 edit-message (POST /api/send/correction, owner: true, channel mod:edit-message), as
 the owner's words, like the voice module below. No rule change in v1.js.
