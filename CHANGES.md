@@ -2,6 +2,16 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+The contract describes the bell keys (both optional). snapshot.notifications —
+rows {id, kind blocker|info|inbox, title, body, since, updated, expires, type,
+target {kind, id, session, plugin}}; a blocker row of todo-own 0.18.0 (feature
+notifications.actions) also carries awaits_reply, request_id, card, tool and
+actions [{id, label, kind option|reply|allow|deny|open, question, command, link}],
+the buttons the clients show on the notification. snapshot.alerts (feature
+push.alerts, Plugin API 1.26) — push reasons {id, key, kind, session, card, title,
+body, since, v, sender, urgent}; key is the push hub.key and apns-collapse-id, the
+client finds the bell row by it. No rule change in v1.js.
+
 The watch check counts a correction of the owner's message, sent by the module
 edit-message (POST /api/send/correction, owner: true, channel mod:edit-message), as
 the owner's words, like the voice module below. No rule change in v1.js.
