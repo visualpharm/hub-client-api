@@ -10,7 +10,11 @@ actions [{id, label, kind option|reply|allow|deny|open, question, command, link}
 the buttons the clients show on the notification. snapshot.alerts (feature
 push.alerts, Plugin API 1.26) — push reasons {id, key, kind, session, card, title,
 body, since, v, sender, urgent}; key is the push hub.key and apns-collapse-id, the
-client finds the bell row by it. No rule change in v1.js.
+client finds the bell row by it. The push payload carries the same sender as an optional hub.sender
+(next to hub.key and hub.kind): for a notice the id of its sender (a session, mod:<name>, ext:<name>,
+schedule:<name>, core…), for a question or tool request the session; alerts[].sender is absent for those two.
+The clients show it as the second line of the notification when it is not there yet and fall back to the
+payload's top-level session when a hub sends no hub.sender. No rule change in v1.js.
 
 The watch check counts a correction of the owner's message, sent by the module
 edit-message (POST /api/send/correction, owner: true, channel mod:edit-message), as
