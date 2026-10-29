@@ -2,6 +2,11 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+snapshot.files_port (number, optional) — the port of the hub's "Files" module (8788 by
+default; a second hub has its own, HUB_FILES_PORT). Clients build file links
+(/raw?path=, /open?path=) on the hub host from settings with this port; without the key
+they use their own HUB_FILES_PORT or 8788. v1.js unchanged.
+
 The contract describes the bell keys (both optional). snapshot.notifications —
 rows {id, kind blocker|info|inbox, title, body, since, updated, expires, type,
 target {kind, id, session, plugin}}; a blocker row of todo-own 0.18.0 (feature
