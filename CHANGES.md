@@ -32,6 +32,15 @@ thread and sends them to the author session; only for action and asked rows of a
 session that are not in progress, never for review rows or hub blockers. No rule
 change in v1.js.
 
+The selfdo action of todo-own 0.26.0 also carries mode "compose" and quote (string): the
+client does not send post but puts quote into the item's reply field (below any words
+already there, a blank line after it), focuses the field with the cursor at the end and
+scrolls to it; the owner adds a comment and sends it himself (the usual reply with todo
+set). quote is a Markdown block quote built by the module: the first line is the label in
+the owner's language ("> Сделай сам:"), then the title, what and need of the row as
+paragraphs. A client that ignores mode keeps sending post as before. Other actions have
+neither field. No rule change in v1.js.
+
 The watch check counts a correction of the owner's message, sent by the module
 edit-message (POST /api/send/correction, owner: true, channel mod:edit-message), as
 the owner's words, like the voice module below. No rule change in v1.js.

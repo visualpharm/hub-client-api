@@ -282,6 +282,8 @@
             "id": "string!",
             "label": "string",
             "kind": "string!",
+            "mode": "string",
+            "quote": "string",
             "post": {
               "method": "string",
               "path": "string",
