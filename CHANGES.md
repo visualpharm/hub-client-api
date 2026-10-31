@@ -2,6 +2,11 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+snapshot.space_pages (optional, feature space.pages, hubbahub-space 0.2.0) — pages of the space:
+rows {id, name, title, kind, size, added_at, updated_at, rev}; the key is present even with no pages.
+GET /api/space/page?id=<id> returns the page as a self-contained HTML document; a client reloads an
+open page when its rev changes. v1.js unchanged.
+
 snapshot.files_port (number, optional) — the port of the hub's "Files" module (8788 by
 default; a second hub has its own, HUB_FILES_PORT). Clients build file links
 (/raw?path=, /open?path=) on the hub host from settings with this port; without the key

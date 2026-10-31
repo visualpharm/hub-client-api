@@ -218,6 +218,18 @@
         "added_at": "number"
       }
     ],
+    "space_pages": [
+      {
+        "id": "string!",
+        "name": "string",
+        "title": "string",
+        "kind": "string",
+        "size": "number",
+        "added_at": "number",
+        "updated_at": "number",
+        "rev": "number"
+      }
+    ],
     "send_audit": {
       "since": "number",
       "checked": "number",
@@ -823,6 +835,15 @@
       ],
       "optional": true,
       "feature": "space.bookmarks"
+    },
+    {
+      "method": "GET",
+      "path": "/api/space/page",
+      "query": [
+        "id"
+      ],
+      "optional": true,
+      "feature": "space.pages"
     }
   ],
   "answers": {

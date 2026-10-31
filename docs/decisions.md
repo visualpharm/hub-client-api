@@ -112,3 +112,9 @@ the commit (back to one retry after 45 s on a network failure only). By: agent (
 Extended the same day: `patient` (the check of client calls) retries up to twice on silence and on 502/503/504 with the same
 pause rules (15 s, Retry-After as a lower bound, at most 60 s; the retry waits up to 30 s for the answer); before, it retried silence
 once after 45 s and reported 503 at once. Worst added time per dead probe: about 90 s. Undo: revert that commit.
+
+## 2026-10-31 · space_pages and GET /api/space/page in the contract without a rules release
+Decided: describe snapshot.space_pages (rows {id, name, title, kind, size, added_at, updated_at, rev}; the key is present with no pages once the
+module is on) and GET /api/space/page?id=<id> (feature `space.pages`, hubbahub-space 0.2.0) in contract/v1.json, both optional. The page is a
+self-contained HTML document (CSP sandbox, scripts allowed): clients open it in a web view on the hub host with the same cookies as other pages;
+`rev` grows on every change, so a client reloads an open page when its rev changes. v1.js rules and rev stay. Undo: remove the entries. By: agent.

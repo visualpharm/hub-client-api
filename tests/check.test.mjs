@@ -623,3 +623,16 @@ test("счёт Inbox inbox_waiting (модуль hubbahub-inbox-count): необ
   assert.deepEqual(checkSnapshot(contract, v1, { ...snapshot(), inbox_waiting: { count: "0" } }), ["snapshot.inbox_waiting.count: string вместо number"]);
   assert.notDeepEqual(checkSnapshot(contract, v1, { ...snapshot(), inbox_waiting: 0 }), []);
 });
+
+test("space_pages и GET /api/space/page: необязательны, привязаны к feature space.pages; есть и нет — проходит", () => {
+  const r = contract.requests.find((x) => x.method === "GET" && x.path === "/api/space/page");
+  assert.ok(r, "путь есть в договоре");
+  assert.equal(r.optional, true);
+  assert.equal(r.feature, "space.pages");
+  assert.deepEqual(r.query, ["id"]);
+  assert.deepEqual(checkSnapshot(contract, v1, snapshot()), []);
+  const s = { ...snapshot(), space_pages: [{ id: "p1", name: "stages", title: "Этапы работ", kind: "html", size: 27756, added_at: 1793447361.5, updated_at: 1793448673.7, rev: 2 }] };
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  s.space_pages[0] = { title: "x", rev: "2" };
+  assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.space_pages[].id: нет поля (string)", "snapshot.space_pages[].rev: string вместо number"]);
+});
