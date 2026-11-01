@@ -11,6 +11,16 @@ rows {id, name, title, kind, size, added_at, updated_at, rev}; the key is presen
 GET /api/space/page?id=<id> returns the page as a self-contained HTML document; a client reloads an
 open page when its rev changes. v1.js unchanged.
 
+snapshot.space_references (optional, feature space.references, hubbahub-space 0.3.0) — "References": the owner's
+questions whose answer he has not opened, plus the ones he pinned to come back to. Rows {id "mN" (the question's
+message id), session, ts, question (flat text, up to 200 chars), answer {seq, ts, text (flat, up to 300 chars)},
+opened (bool), keep (bool)}, newest first, up to 100; the key is present even when empty. "Opened" = the owner's
+owner.seen for that session reached answer.seq (read state is per session, so opening a session clears all older
+answers in it) or a manual read mark. GET /api/space/references returns {references}; POST /api/space/references/mark
+{id, read?, keep?} marks one row (read:true = seen, keep:true = come back to it, keep:false unpins) and returns
+{ok, reference}; owner only (403 otherwise), unknown id 404. A client that opens an answer should also send
+/api/seen so other clients drop the row. v1.js unchanged.
+
 snapshot.files_port (number, optional) — the port of the hub's "Files" module (8788 by
 default; a second hub has its own, HUB_FILES_PORT). Clients build file links
 (/raw?path=, /open?path=) on the hub host from settings with this port; without the key
