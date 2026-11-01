@@ -636,3 +636,10 @@ test("space_pages и GET /api/space/page: необязательны, привя
   s.space_pages[0] = { title: "x", rev: "2" };
   assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.space_pages[].id: нет поля (string)", "snapshot.space_pages[].rev: string вместо number"]);
 });
+
+test("POST /api/send: app и app_version в теле (feature send.app); ядро без признака поля не читает — клиент шлёт всегда", () => {
+  const r = contract.requests.find((x) => x.method === "POST" && x.path === "/api/send");
+  assert.ok(r.body.includes("app") && r.body.includes("app_version"));
+  assert.ok(r.absent.app && r.absent.app_version);
+  assert.match(contract.about, /send\.app/);
+});

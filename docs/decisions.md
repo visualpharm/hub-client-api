@@ -118,3 +118,10 @@ Decided: describe snapshot.space_pages (rows {id, name, title, kind, size, added
 module is on) and GET /api/space/page?id=<id> (feature `space.pages`, hubbahub-space 0.2.0) in contract/v1.json, both optional. The page is a
 self-contained HTML document (CSP sandbox, scripts allowed): clients open it in a web view on the hub host with the same cookies as other pages;
 `rev` grows on every change, so a client reloads an open page when its rev changes. v1.js rules and rev stay. Undo: remove the entries. By: agent.
+
+## 2026-10-31 · app and app_version in POST /api/send (feature send.app)
+Decided: every client sends `app` (ios | mac | android) and `app_version` (CFBundleShortVersionString / versionName) in each POST /api/send body
+(text, card answer words, quick send, attachments); the voice "send now" request puts them into the `send` object of /api/voice/save. The hub
+signs the owner's message label in the session with the client and version (core api.js sendMessage, feature `send.app`). The core without the
+feature ignores unknown fields, so clients send them always and do not wait for the feature. They are listed in `absent` of the request. v1.js
+rules and rev stay. Undo: remove the two fields and the `absent` lines. By: agent (d1432801).

@@ -2,6 +2,10 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+POST /api/send body: app (ios | mac | android) and app_version (client version), feature send.app. The hub signs
+the owner's message label with the client and version; a core without the feature ignores the fields, so clients
+always send them. v1.js unchanged.
+
 snapshot.space_pages (optional, feature space.pages, hubbahub-space 0.2.0) — pages of the space:
 rows {id, name, title, kind, size, added_at, updated_at, rev}; the key is present even with no pages.
 GET /api/space/page?id=<id> returns the page as a self-contained HTML document; a client reloads an
