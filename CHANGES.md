@@ -21,6 +21,23 @@ answers in it) or a manual read mark. GET /api/space/references returns {referen
 {ok, reference}; owner only (403 otherwise), unknown id 404. A client that opens an answer should also send
 /api/seen so other clients drop the row. v1.js unchanged.
 
+space_references v2 (feature space.references.v2, hubbahub-space 0.5.0) — the list becomes a mailbox: every answer to an
+owner question, not only unopened ones. Rows gain title (up to 80 chars, short wording of the question, made once by a cheap
+model; fallback = the first 80 chars of the question without "listen, ..."), question_seq, link ("#/s/<session>?seq=<answer seq>")
+and archived (bool, default false); opened:false = unread, keep = star. The snapshot key stays the 100 newest rows; the new
+snapshot key space_references_unread (int) counts unread non-archived references over ALL of them. GET /api/space/references
+?before=<answer seq>&n=100 returns {references, next, unread}: older page, next = the before for the following page, null at
+the end. GET /api/space/references/article?id=mN returns {id, title, question (full), answer (full markdown), attachments
+[{path|url, name, kind}] ([] if none), session, answer_seq, answer_ts, question_seq, ts, opened, keep, archived, link}; unknown
+id 404. POST /api/space/references/mark takes {id, read?, keep?, archived?} (at least one) and returns {ok, reference}. The
+earlier pins (seed) are cleared by the module: keep:false for every reference the owner has not starred himself. v1 fields
+are unchanged.
+
+hubbahub-space 0.5.1 changes only WHICH answers become references, not the contract: a reference is any request whose result
+is information (an answer, a pick or comparison, a fact check, a recommendation), not only phrased questions; code, deploy,
+send and other action requests stay out. A cheap model decides once per turn, the verdict is stored with the reference; a
+turn waiting for its verdict shows up only if the old text rules accepted it. Clients need no change.
+
 snapshot.files_port (number, optional) — the port of the hub's "Files" module (8788 by
 default; a second hub has its own, HUB_FILES_PORT). Clients build file links
 (/raw?path=, /open?path=) on the hub host from settings with this port; without the key
