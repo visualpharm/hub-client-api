@@ -38,6 +38,11 @@ is information (an answer, a pick or comparison, a fact check, a recommendation)
 send and other action requests stay out. A cheap model decides once per turn, the verdict is stored with the reference; a
 turn waiting for its verdict shows up only if the old text rules accepted it. Clients need no change.
 
+hubbahub-space 0.6.2 tightens the same filter, contract unchanged: a reference is only an answer that itself contains the
+substance. Process reports ("woke the service", "handed it over", "started", "waiting", "taken into work") are not references;
+those already shown are archived (hidden, kept by the module), starred and hand-added ones stay. title is now the answer
+itself, standing alone: up to 60 chars (aim 45), never cut mid-word, no trailing ellipsis. Clients need no change.
+
 snapshot.files_port (number, optional) — the port of the hub's "Files" module (8788 by
 default; a second hub has its own, HUB_FILES_PORT). Clients build file links
 (/raw?path=, /open?path=) on the hub host from settings with this port; without the key
