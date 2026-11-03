@@ -43,6 +43,10 @@ substance. Process reports ("woke the service", "handed it over", "started", "wa
 those already shown are archived (hidden, kept by the module), starred and hand-added ones stay. title is now the answer
 itself, standing alone: up to 60 chars (aim 45), never cut mid-word, no trailing ellipsis. Clients need no change.
 
+hubbahub-space 0.6.3 adds one more class that is never a reference, contract unchanged: service requests (hub templates and
+auto-notices such as "message from ... - sort it out", questions about an Inbox item or a service note, the repeated "name the
+one most important thing now"). Those already shown are archived (starred ones stay). Clients need no change.
+
 snapshot.files_port (number, optional) — the port of the hub's "Files" module (8788 by
 default; a second hub has its own, HUB_FILES_PORT). Clients build file links
 (/raw?path=, /open?path=) on the hub host from settings with this port; without the key
