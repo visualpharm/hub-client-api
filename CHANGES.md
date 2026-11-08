@@ -2,6 +2,12 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+Feed row in: answer_to (qN) and on_behalf ("owner"), feature feed.on_behalf (core PR #498). The core's retelling of the
+owner's action on a card ("Ответ владельца на вопрос qN: …", a closed or withdrawn card) is a core row: sender "ядро",
+from {kind: "core"}, on_behalf "owner"; the answer itself is the answer row of the same seq. Clients never draw it as
+the owner's bubble; on a hub without the feature such a row has sender "владелец" and from {kind: "owner"} — an in row
+with answer_to is treated the same way. v1.js unchanged.
+
 POST /api/send body: app (ios | mac | android) and app_version (client version), feature send.app. The hub signs
 the owner's message label with the client and version; a core without the feature ignores the fields, so clients
 always send them. v1.js unchanged.
