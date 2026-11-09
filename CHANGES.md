@@ -2,6 +2,11 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+The watch check counts a screencast from the client, sent by the module hubbahub-screencast after its digest (owner: true,
+channel mod:hubbahub-screencast), as the owner's message, like a voice message from hubbahub-voice-own. Without the
+owner's words its text is the module caption "Скринкаст: <summary>"; clients show the summary under the video
+(attachments[].screencast.summary), not as his words. Other mod:* channels stay non-owner. No rule change in v1.js.
+
 GET /api/files answer (answers.files): items[].screenshot — a screen capture, feature files.screenshots (module
 hubbahub-files 0.4.0). Media splits images into Screenshots (screenshot true, the owner's and the sessions') and Generated
 (the sessions' other images); without the feature clients split as before (by "owner" — uploaded, else generated) and old

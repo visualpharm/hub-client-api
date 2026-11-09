@@ -383,6 +383,21 @@ test("журнал: голосовое владельца через модул�
   assert.deepEqual(checkLive("hub-core", raw, raw), []);
 });
 
+test("журнал: скринкаст владельца через модуль hubbahub-screencast — его сообщение, и без слов (подпись-сводка)", () => {
+  // клиент шлёт запись на /api/screencast/send (только владелец), модуль отдаёт её сессии после разбора: owner:true,
+  // канал модуля; без слов владельца текст — «Скринкаст: сводка», клиенты показывают её под видео, не его словами
+  const cast = said(2161240, "hub-core", { channel: "mod:hubbahub-screencast", text: "Скринкаст: 0:13 · фраз: 1",
+                                          attachments: [{ name: "screencast-c88e5a08.mp4", mime: "video/mp4",
+                                                          screencast: { id: "b6", state: "ready", summary: "0:13 · фраз: 1" } }] });
+  const [m] = messagesOf([cast]);
+  assert.equal(m.owner, true);
+  const lines = { "hub-core": [{ kind: "in", id: "m2161240", seq: 2161240 }] };
+  assert.deepEqual(checkJournal([m], lines, { m2161240: { state: "delivered" } }), []);
+  const raw = { items: [{ kind: "in", id: "m2161240", seq: 2161240, channel: "mod:hubbahub-screencast", sender: null,
+                          text: "Скринкаст: 0:13 · фраз: 1" }] };
+  assert.deepEqual(checkLive("hub-core", raw, raw), []);
+});
+
 test("журнал: правка сообщения владельца через модуль edit-message — его слова", () => {
   const fix = said(818420, "hub-core", { channel: "mod:edit-message" });
   const [m] = messagesOf([fix]);
