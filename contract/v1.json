@@ -853,7 +853,7 @@
     }
   ],
   "answers": {
-    "about": "Ответы необязательных адресов, когда хаб их объявил (features): сверка проверяет их живой ответ. Сверка отправок (send.audit): ответ POST /api/send/audit — send_audit. Слова от имени агента (send.agent): ответ POST /api/send/agent — send_agent. Поправка к отправленному (send.correction): ответ POST /api/send/correction — send_correction. Связь поправки с исходным (send.correction.replaces): ответ GET /api/correction-ref — correction_ref. Телеметрия устройства (client.metrics): ответ POST /api/client/metrics — client_metrics.",
+    "about": "Ответы необязательных адресов, когда хаб их объявил (features): сверка проверяет их живой ответ. Сверка отправок (send.audit): ответ POST /api/send/audit — send_audit. Слова от имени агента (send.agent): ответ POST /api/send/agent — send_agent. Поправка к отправленному (send.correction): ответ POST /api/send/correction — send_correction. Связь поправки с исходным (send.correction.replaces): ответ GET /api/correction-ref — correction_ref. Телеметрия устройства (client.metrics): ответ POST /api/client/metrics — client_metrics. Файлы (GET /api/files): ответ — files, пункты новыми первыми. screenshot у пункта — снимок экрана, когда хаб объявил files.screenshots: такие клиент кладёт в «Скриншоты» (и свои, и сессий), остальные картинки сессий — в Generated; без признака делит, как прежде (by = owner — загруженные, иначе — созданные). Снимок экрана, который клиент прикладывает сам (автоснимок, вставка снимка), он помечает в POST /api/send: attachments[].screenshot = true — ядро пропускает поле вложения как есть. Без метки скриншотом считается картинка с меткой в файле: XMP exif:UserComment=Screenshot (macOS, iOS) или PNG tEXt Software «hub shot».",
     "snippets": {
       "items!": [
         {
@@ -916,6 +916,23 @@
       "ok": "boolean!",
       "id": "string!",
       "duplicate": "boolean"
+    },
+    "files": {
+      "items!": [
+        {
+          "path": "string!",
+          "name": "string!",
+          "image": "boolean!",
+          "by": "string!",
+          "session": "string!",
+          "ts": "number!",
+          "seq": "number!",
+          "voice": "boolean",
+          "screenshot": "boolean"
+        }
+      ],
+      "more": "boolean!",
+      "building": "boolean"
     }
   }
 }

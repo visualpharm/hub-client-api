@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkClientMetrics, checkCore, checkCorrectionRef, checkSendAgent, checkSendAudit, checkSendCorrection, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
+import { checkClientMetrics, checkCore, checkCorrectionRef, checkFiles, checkSendAgent, checkSendAudit, checkSendCorrection, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const contract = JSON.parse(fs.readFileSync(path.join(root, "contract", "v1.json"), "utf8"));
@@ -642,4 +642,16 @@ test("POST /api/send: app и app_version в теле (feature send.app); ядр�
   assert.ok(r.body.includes("app") && r.body.includes("app_version"));
   assert.ok(r.absent.app && r.absent.app_version);
   assert.match(contract.about, /send\.app/);
+});
+
+test("файлы: ответ GET /api/files; screenshot — снимок экрана (files.screenshots), у прежнего модуля поля нет", () => {
+  const row = (extra) => ({ path: "/x/a.png", name: "a.png", image: true, by: "example", session: "example", ts: 1, seq: 2,
+                            voice: false, ...extra });
+  assert.deepEqual(checkFiles(contract, { items: [row({ screenshot: true }), row({ screenshot: false })], more: false, building: false }), []);
+  assert.deepEqual(checkFiles(contract, { items: [row()], more: true, building: true }), [], "прежний модуль: без screenshot");
+  assert.deepEqual(checkFiles(contract, { items: [row({ screenshot: "yes" })], more: false }), ["files.items[].screenshot: string вместо boolean"]);
+  const bad = row();
+  delete bad.by;
+  assert.deepEqual(checkFiles(contract, { items: [bad] }), ["files.items[].by: нет поля (string)", "files.more: нет поля (boolean)"]);
+  assert.match(contract.answers.about, /files\.screenshots/, "в договоре сказано, по какому признаку клиент делит Медиа");
 });

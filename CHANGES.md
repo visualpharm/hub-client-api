@@ -2,6 +2,14 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+GET /api/files answer (answers.files): items[].screenshot — a screen capture, feature files.screenshots (module
+hubbahub-files 0.4.0). Media splits images into Screenshots (screenshot true, the owner's and the sessions') and Generated
+(the sessions' other images); without the feature clients split as before (by "owner" — uploaded, else generated) and old
+clients ignore the field. A client marks a screenshot it attaches itself (auto-shot, pasted screen capture) with
+attachments[].screenshot = true in POST /api/send; the core keeps the attachment field as is. Unmarked images count as
+screenshots by a mark in the file: XMP exif:UserComment=Screenshot (macOS, iOS) or PNG tEXt Software "hub shot".
+tools/check.mjs checks the live answer when the hub declares the feature. v1.js unchanged.
+
 Feed row in: answer_to (qN) and on_behalf ("owner"), feature feed.on_behalf (core PR #498). The core's retelling of the
 owner's action on a card ("Ответ владельца на вопрос qN: …", a closed or withdrawn card) is a core row: sender "ядро",
 from {kind: "core"}, on_behalf "owner"; the answer itself is the answer row of the same seq. Clients never draw it as

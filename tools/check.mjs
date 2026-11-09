@@ -109,6 +109,11 @@ export function checkClientMetrics(contract, answer) {
   return diff(answer, contract.answers.client_metrics, "client_metrics");
 }
 
+/** Ответ «Файлов» (GET /api/files): пункты; screenshot — у хаба с feature files.screenshots, у прежнего модуля поля нет. */
+export function checkFiles(contract, answer) {
+  return diff(answer, contract.answers.files, "files");
+}
+
 /** Пути и поля запросов клиента (после правила request) — есть ли они в коде хаба. */
 /** Код страницы хаба и модулей, чьи поля она передаёт дальше как есть (сниппеты разбирают op в своём модуле). */
 export const coreCode = (dir) => ["web", "snippets"].map((m) => path.join(dir, "modules", m)).filter((d) => fs.existsSync(d))
@@ -148,6 +153,9 @@ async function checkHub(contract, rules, base) {
   }
   if ((snap.features || []).includes("snippets")) {   // набор сниппетов — живой ответ, в виде договора
     checkSnippets(contract, await json(`${base}/api/snippets?lang=en`)).forEach((p) => out.includes(p) || out.push(p));
+  }
+  if ((snap.features || []).includes("files.screenshots")) {   // только чтение: верх списка «Файлов»
+    checkFiles(contract, await json(`${base}/api/files?n=20`)).forEach((p) => out.includes(p) || out.push(p));
   }
   let refs = "";
   if ((snap.features || []).includes("send.correction.replaces")) {   // только чтение: ручку спрашиваем о связи из снимка
