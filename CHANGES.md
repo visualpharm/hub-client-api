@@ -30,6 +30,16 @@ space.references.cards) — [qN] on references, notes and the article. GET /api/
 id; 404 unknown) → {id, session, request_id, ts, questions with options, state open|answered|closed, how, answer
 [{question, choice, comment, text}], why, closed_ts}. tools/check.mjs checks these live answers when the hub declares the features.
 
+To-do "in progress" taken by a reply (features todo.progress.reply, module todo-own 0.31.1): a todo[] row may carry
+progress_by "reply" and progress_msg (the mN of the owner's reply) on top of state "progress" — clients keep the row in the
+grey progress group, out of the waiting count. Graph of links (feature todo.linked, same module): todo[] and notifications[]
+rows may carry linked [qN|pN…] — nodes (a card qN, an Inbox post pN) whose answer also extinguishes this row. The list is a
+hint about decisions the module has already made in the same snapshot: a client hides everything linked to a node answered
+here at once (card, To-do row, Inbox row), shows one decision once, and rolls back when the hub refuses or the next snapshot
+returns the rows. Protected items (money, signature, taxes, health) are the module's call, not the client's. Without the
+features clients do not read the fields. contract/v1.json: todo[] gained progress_by, progress_msg, linked; notifications[]
+gained linked. v1.js unchanged.
+
 The watch check counts a screencast from the client, sent by the module hubbahub-screencast after its digest (owner: true,
 channel mod:hubbahub-screencast), as the owner's message, like a voice message from hubbahub-voice-own. Without the
 owner's words its text is the module caption "Скринкаст: <summary>"; clients show the summary under the video
