@@ -2,6 +2,11 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+Words to a session the hub does not have (core PR #598): POST /api/send to a removed or never-created session answers 202 and
+puts the words in the hub's feed as an owner in row with addressed (the name that was written to; contract kinds.in.addressed).
+Clients show ordinary ticks, no unsent item, and a service line under the bubble "To Hub — X was removed". Older cores answer
+404 "Сессии X нет.": clients offer Dismiss (text back to the composer) instead of Retry. v1.js unchanged.
+
 Space references and notes in the contract (hubbahub-space 0.16.0, v1.js unchanged): snapshot keys space_references (100 newest),
 space_references_unread and space_notes (first 30 by rank; rows kind ref|note); GET /api/space/references, /api/space/notes
 and /api/space/references/article?id=mN with answers space_references_page, space_notes, space_article. thread (feature
