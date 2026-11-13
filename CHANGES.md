@@ -2,6 +2,15 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+Space references and notes in the contract (hubbahub-space 0.16.0, v1.js unchanged): snapshot keys space_references (100 newest),
+space_references_unread and space_notes (first 30 by rank; rows kind ref|note); GET /api/space/references, /api/space/notes
+and /api/space/references/article?id=mN with answers space_references_page, space_notes, space_article. thread (feature
+space.references.thread) — event numbers of the author's feed: the owner's words sent with ref and the session's reply to
+them. POST /api/send takes ref (note nN or reference mN id, string up to 128 chars, like todo; longer is 400). cards (feature
+space.references.cards) — [qN] on references, notes and the article. GET /api/space/question?id=qN (owner only: 403; 400
+id; 404 unknown) → {id, session, request_id, ts, questions with options, state open|answered|closed, how, answer
+[{question, choice, comment, text}], why, closed_ts}. tools/check.mjs checks these live answers when the hub declares the features.
+
 The watch check counts a screencast from the client, sent by the module hubbahub-screencast after its digest (owner: true,
 channel mod:hubbahub-screencast), as the owner's message, like a voice message from hubbahub-voice-own. Without the
 owner's words its text is the module caption "Скринкаст: <summary>"; clients show the summary under the video

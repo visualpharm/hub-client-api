@@ -114,6 +114,12 @@ export function checkFiles(contract, answer) {
   return diff(answer, contract.answers.files, "files");
 }
 
+/** Ответы Space (hubbahub-space 0.16.0): страница справок, Notes, статья, карточка по номеру. */
+export const checkSpaceReferences = (contract, answer) => diff(answer, contract.answers.space_references_page, "space_references");
+export const checkSpaceNotes = (contract, answer) => diff(answer, contract.answers.space_notes, "space_notes");
+export const checkSpaceArticle = (contract, answer) => diff(answer, contract.answers.space_article, "space_article");
+export const checkSpaceQuestion = (contract, answer) => diff(answer, contract.answers.space_question, "space_question");
+
 /** Пути и поля запросов клиента (после правила request) — есть ли они в коде хаба. */
 /** Код страницы хаба и модулей, чьи поля она передаёт дальше как есть (сниппеты разбирают op в своём модуле). */
 export const coreCode = (dir) => ["web", "snippets"].map((m) => path.join(dir, "modules", m)).filter((d) => fs.existsSync(d))
@@ -156,6 +162,17 @@ async function checkHub(contract, rules, base) {
   }
   if ((snap.features || []).includes("files.screenshots")) {   // только чтение: верх списка «Файлов»
     checkFiles(contract, await json(`${base}/api/files?n=20`)).forEach((p) => out.includes(p) || out.push(p));
+  }
+  const feats = snap.features || [];   // Space: только чтение; карточку берём из справки, у которой она есть
+  if (feats.includes("space.references")) {
+    const page = await json(`${base}/api/space/references?n=5`);
+    checkSpaceReferences(contract, page).forEach((p) => out.includes(p) || out.push(p));
+    if (page.references && page.references[0]) checkSpaceArticle(contract, await json(`${base}/api/space/references/article?id=${page.references[0].id}`)).forEach((p) => out.includes(p) || out.push(p));
+  }
+  if (feats.includes("space.notes")) checkSpaceNotes(contract, await json(`${base}/api/space/notes?n=5`)).forEach((p) => out.includes(p) || out.push(p));
+  if (feats.includes("space.references.cards")) {
+    const q = (snap.space_references || []).flatMap((r) => r.cards || [])[0];
+    if (q) checkSpaceQuestion(contract, await json(`${base}/api/space/question?id=${q}`)).forEach((p) => out.includes(p) || out.push(p));
   }
   let refs = "";
   if ((snap.features || []).includes("send.correction.replaces")) {   // только чтение: ручку спрашиваем о связи из снимка

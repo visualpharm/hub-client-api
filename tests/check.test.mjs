@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkClientMetrics, checkCore, checkCorrectionRef, checkFiles, checkSendAgent, checkSendAudit, checkSendCorrection, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
+import { checkClientMetrics, checkCore, checkCorrectionRef, checkFiles, checkSendAgent, checkSpaceArticle, checkSpaceNotes, checkSpaceQuestion, checkSpaceReferences, checkSendAudit, checkSendCorrection, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const contract = JSON.parse(fs.readFileSync(path.join(root, "contract", "v1.json"), "utf8"));
@@ -669,4 +669,31 @@ test("файлы: ответ GET /api/files; screenshot — снимок экр�
   delete bad.by;
   assert.deepEqual(checkFiles(contract, { items: [bad] }), ["files.items[].by: нет поля (string)", "files.more: нет поля (boolean)"]);
   assert.match(contract.answers.about, /files\.screenshots/, "в договоре сказано, по какому признаку клиент делит Медиа");
+});
+
+test("Space 0.16.0: space_references/space_notes в снимке, ответы notes/article/question, ref в /api/send", () => {
+  const ref = { id: "m1", session: "a", ts: 1, title: "t", question: "q", question_seq: 1, link: "#/s/a?seq=2",
+                answer: { seq: 2, ts: 2, text: "x" }, opened: false, keep: false, archived: false, auto: null, why: "", note: null,
+                what: "", proj: "", until: null, thread: [3], cards: ["q9"] };
+  const s = { ...snapshot(), space_references: [{ ...ref }], space_references_unread: 1, space_notes: [{ kind: "ref", ...ref, rank: 0 },
+    { kind: "note", id: "n1", session: "a", title: "t", body: "b", links: [], ts: 1, items: [{ id: "m1", title: "t", ts: 1 }], opened: false, keep: false, thread: [], cards: [] }] };
+  assert.deepEqual(checkSnapshot(contract, v1, s), []);
+  s.space_references[0].thread = ["3"];
+  s.space_references_unread = "1";
+  assert.deepEqual(checkSnapshot(contract, v1, s), ["snapshot.space_references[].thread[]: string вместо number", "snapshot.space_references_unread: string вместо number"]);
+  assert.deepEqual(checkSpaceReferences(contract, { references: [ref], next: null, unread: 1 }), []);
+  assert.deepEqual(checkSpaceNotes(contract, { notes: [], unread: 0 }), []);
+  assert.deepEqual(checkSpaceNotes(contract, { unread: 0 }), ["space_notes.notes: нет поля"]);
+  const art = { id: "m1", title: "t", question: "q", answer: "a", attachments: [{ path: "/x", name: "x", kind: "image" }], session: "a",
+                answer_seq: 2, answer_ts: 2, question_seq: 1, ts: 1, opened: false, keep: false, archived: false, link: "#", thread: [], cards: ["q9"] };
+  assert.deepEqual(checkSpaceArticle(contract, art), []);
+  const card = { id: "q9", session: "a", request_id: "r", ts: 1, state: "answered", how: "button", why: null, closed_ts: 2,
+                 questions: [{ question: "?", header: "h", multi: false, options: [{ label: "A", description: "d" }] }],
+                 answer: [{ question: "?", choice: ["A"], comment: "", text: "A" }] };
+  assert.deepEqual(checkSpaceQuestion(contract, card), []);
+  assert.deepEqual(checkSpaceQuestion(contract, { ...card, state: undefined }), ["space_question.state: нет поля (string)"]);
+  const send = contract.requests.find((r) => r.method === "POST" && r.path === "/api/send");
+  assert.ok(send.body.includes("ref") && send.absent.ref);
+  for (const [path, feature] of [["/api/space/notes", "space.notes"], ["/api/space/references/article", "space.references"], ["/api/space/question", "space.references.cards"]])
+    assert.equal(contract.requests.find((r) => r.path === path).feature, feature);
 });

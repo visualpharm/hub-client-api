@@ -375,7 +375,83 @@
     ],
     "hub_name": "string",
     "hub_title": "string",
-    "files_port": "number"
+    "files_port": "number",
+    "space_references": [
+      {
+        "id": "string!",
+        "session": "string!",
+        "ts": "number",
+        "title": "string",
+        "question": "string",
+        "question_seq": "number",
+        "link": "string",
+        "answer": {
+          "seq": "number",
+          "ts": "number",
+          "text": "string"
+        },
+        "opened": "boolean",
+        "keep": "boolean",
+        "archived": "boolean",
+        "auto": "string",
+        "why": "string",
+        "note": "string",
+        "what": "string",
+        "proj": "string",
+        "until": "number",
+        "thread": [
+          "number"
+        ],
+        "cards": [
+          "string"
+        ]
+      }
+    ],
+    "space_references_unread": "number",
+    "space_notes": [
+      {
+        "ts": "number",
+        "title": "string",
+        "question": "string",
+        "question_seq": "number",
+        "link": "string",
+        "answer": {
+          "seq": "number",
+          "ts": "number",
+          "text": "string"
+        },
+        "opened": "boolean",
+        "keep": "boolean",
+        "archived": "boolean",
+        "auto": "string",
+        "why": "string",
+        "note": "string",
+        "what": "string",
+        "proj": "string",
+        "until": "number",
+        "thread": [
+          "number"
+        ],
+        "cards": [
+          "string"
+        ],
+        "kind": "string!",
+        "id": "string!",
+        "session": "string",
+        "body": "string",
+        "links": [
+          "any"
+        ],
+        "items": [
+          {
+            "id": "string!",
+            "title": "string",
+            "ts": "number"
+          }
+        ],
+        "rank": "number"
+      }
+    ]
   },
   "timeline": {
     "epoch": "string!",
@@ -481,6 +557,7 @@
         "quote",
         "correction",
         "card",
+        "ref",
         "client_id",
         "app",
         "app_version"
@@ -488,7 +565,8 @@
       "absent": {
         "correction": "нет в flagman v1.1.3: ядро молча теряет поле; поправку клиент шлёт на POST /api/send/correction (модуль edit-message, features send.correction)",
         "app": "ядро без feature send.app поле не читает и молча теряет; клиент шлёт его всегда, признака не ждёт",
-        "app_version": "то же, что app"
+        "app_version": "то же, что app",
+        "ref": "ядро до поддержки ref поле молча теряет; клиент шлёт его только при feature space.references.thread"
       }
     },
     {
@@ -850,10 +928,60 @@
       ],
       "optional": true,
       "feature": "space.pages"
+    },
+    {
+      "method": "GET",
+      "path": "/api/space/references",
+      "query": [
+        "before",
+        "n"
+      ],
+      "optional": true,
+      "feature": "space.references"
+    },
+    {
+      "method": "GET",
+      "path": "/api/space/references/article",
+      "query": [
+        "id"
+      ],
+      "optional": true,
+      "feature": "space.references"
+    },
+    {
+      "method": "POST",
+      "path": "/api/space/references/mark",
+      "body": [
+        "id",
+        "read",
+        "keep",
+        "archived"
+      ],
+      "optional": true,
+      "feature": "space.references"
+    },
+    {
+      "method": "GET",
+      "path": "/api/space/notes",
+      "query": [
+        "n"
+      ],
+      "optional": true,
+      "feature": "space.notes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/space/question",
+      "query": [
+        "id"
+      ],
+      "optional": true,
+      "feature": "space.references.cards",
+      "owner": true
     }
   ],
   "answers": {
-    "about": "Ответы необязательных адресов, когда хаб их объявил (features): сверка проверяет их живой ответ. Сверка отправок (send.audit): ответ POST /api/send/audit — send_audit. Слова от имени агента (send.agent): ответ POST /api/send/agent — send_agent. Поправка к отправленному (send.correction): ответ POST /api/send/correction — send_correction. Связь поправки с исходным (send.correction.replaces): ответ GET /api/correction-ref — correction_ref. Телеметрия устройства (client.metrics): ответ POST /api/client/metrics — client_metrics. Файлы (GET /api/files): ответ — files, пункты новыми первыми. screenshot у пункта — снимок экрана, когда хаб объявил files.screenshots: такие клиент кладёт в «Скриншоты» (и свои, и сессий), остальные картинки сессий — в Generated; без признака делит, как прежде (by = owner — загруженные, иначе — созданные). Снимок экрана, который клиент прикладывает сам (автоснимок, вставка снимка), он помечает в POST /api/send: attachments[].screenshot = true — ядро пропускает поле вложения как есть. Без метки скриншотом считается картинка с меткой в файле: XMP exif:UserComment=Screenshot (macOS, iOS) или PNG tEXt Software «hub shot».",
+    "about": "Ответы необязательных адресов, когда хаб их объявил (features): сверка проверяет их живой ответ. Сверка отправок (send.audit): ответ POST /api/send/audit — send_audit. Слова от имени агента (send.agent): ответ POST /api/send/agent — send_agent. Поправка к отправленному (send.correction): ответ POST /api/send/correction — send_correction. Связь поправки с исходным (send.correction.replaces): ответ GET /api/correction-ref — correction_ref. Телеметрия устройства (client.metrics): ответ POST /api/client/metrics — client_metrics. Файлы (GET /api/files): ответ — files, пункты новыми первыми. screenshot у пункта — снимок экрана, когда хаб объявил files.screenshots: такие клиент кладёт в «Скриншоты» (и свои, и сессий), остальные картинки сессий — в Generated; без признака делит, как прежде (by = owner — загруженные, иначе — созданные). Снимок экрана, который клиент прикладывает сам (автоснимок, вставка снимка), он помечает в POST /api/send: attachments[].screenshot = true — ядро пропускает поле вложения как есть. Без метки скриншотом считается картинка с меткой в файле: XMP exif:UserComment=Screenshot (macOS, iOS) или PNG tEXt Software «hub shot». Space: справки и заметки (hubbahub-space 0.16.0). Ключи снимка space_references (100 новых справок), space_references_unread и space_notes (30 первых) — оба ключа есть и пустыми (feature space.references / space.notes). GET /api/space/references?before=&n= → space_references_page; GET /api/space/notes?n= → space_notes; GET /api/space/references/article?id=mN → space_article; 404 нет справки, 400 плохой id. thread у строк и статьи (feature space.references.thread) — номера событий ленты: слова владельца, посланные с ref этой строки (POST /api/send, ref — id заметки nN или справки mN, строка до 128 знаков, как todo; больше — 400), и ответ сессии на них; клиент берёт тред из ленты по номерам, без признака поля нет. cards (feature space.references.cards) у справки, заметки и статьи — номера qN карточек, которые сессия выставила в том же ходе, открытые на момент ответа, если он о карточке, и названные в тексте. GET /api/space/question?id=qN → space_question, только клиент владельца (403 иначе), 400 нужен id=qN, 404 нет такой карточки. state open (карточка висит, answer null) | answered | closed; how при закрытии: button (ответ на карточке), words (слова владельца, которые ядро сочло ответом), dismissed (×), withdrawn (сняла сессия или хаб, why — причина), declined, gone (ядро сняло без видимого факта), unknown (карточка старше памяти модуля, ответ неизвестен); answer — по вопросу {question, choice (метки вариантов), comment, text}.",
     "snippets": {
       "items!": [
         {
@@ -933,6 +1061,150 @@
       ],
       "more": "boolean!",
       "building": "boolean"
+    },
+    "space_references_page": {
+      "references": [
+        {
+          "id": "string!",
+          "session": "string!",
+          "ts": "number",
+          "title": "string",
+          "question": "string",
+          "question_seq": "number",
+          "link": "string",
+          "answer": {
+            "seq": "number",
+            "ts": "number",
+            "text": "string"
+          },
+          "opened": "boolean",
+          "keep": "boolean",
+          "archived": "boolean",
+          "auto": "string",
+          "why": "string",
+          "note": "string",
+          "what": "string",
+          "proj": "string",
+          "until": "number",
+          "thread": [
+            "number"
+          ],
+          "cards": [
+            "string"
+          ]
+        }
+      ],
+      "next": "number",
+      "unread": "number!"
+    },
+    "space_notes": {
+      "notes!": [
+        {
+          "ts": "number",
+          "title": "string",
+          "question": "string",
+          "question_seq": "number",
+          "link": "string",
+          "answer": {
+            "seq": "number",
+            "ts": "number",
+            "text": "string"
+          },
+          "opened": "boolean",
+          "keep": "boolean",
+          "archived": "boolean",
+          "auto": "string",
+          "why": "string",
+          "note": "string",
+          "what": "string",
+          "proj": "string",
+          "until": "number",
+          "thread": [
+            "number"
+          ],
+          "cards": [
+            "string"
+          ],
+          "kind": "string!",
+          "id": "string!",
+          "session": "string",
+          "body": "string",
+          "links": [
+            "any"
+          ],
+          "items": [
+            {
+              "id": "string!",
+              "title": "string",
+              "ts": "number"
+            }
+          ],
+          "rank": "number"
+        }
+      ],
+      "unread": "number!"
+    },
+    "space_article": {
+      "id": "string!",
+      "title": "string",
+      "question": "string",
+      "answer": "string",
+      "attachments": [
+        {
+          "path": "string",
+          "url": "string",
+          "name": "string",
+          "kind": "string"
+        }
+      ],
+      "session": "string",
+      "answer_seq": "number",
+      "answer_ts": "number",
+      "question_seq": "number",
+      "ts": "number",
+      "opened": "boolean",
+      "keep": "boolean",
+      "archived": "boolean",
+      "link": "string",
+      "thread": [
+        "number"
+      ],
+      "cards": [
+        "string"
+      ]
+    },
+    "space_question": {
+      "id": "string!",
+      "session": "string!",
+      "request_id": "string",
+      "ts": "number",
+      "questions": [
+        {
+          "question": "string!",
+          "header": "string",
+          "multi": "boolean",
+          "options": [
+            {
+              "label": "string!",
+              "description": "string"
+            }
+          ]
+        }
+      ],
+      "state": "string!",
+      "how": "string",
+      "answer": [
+        {
+          "question": "string",
+          "choice": [
+            "string"
+          ],
+          "comment": "string",
+          "text": "string"
+        }
+      ],
+      "why": "string",
+      "closed_ts": "number"
     }
   }
 }
