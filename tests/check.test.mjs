@@ -263,7 +263,7 @@ test("каталог моделей: tier необязателен (старое
 });
 
 test("аккаунты расхода, hints_seen и новые пути: все необязательны; снимок без них и с ними проходит", () => {
-  for (const [path, feature] of [["/api/hints/seen", "hints"], ["/api/todo/undone", "todo.undone"]]) {
+  for (const [path, feature] of [["/api/hints/seen", "hints"], ["/api/todo/undone", "todo.undone"], ["/api/todo/dismiss", "todo.dismiss"]]) {
     const r = contract.requests.find((x) => x.method === "POST" && x.path === path);
     assert.ok(r, `${path} есть в договоре`);
     assert.equal(r.optional, true);

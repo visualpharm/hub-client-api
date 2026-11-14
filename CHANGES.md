@@ -2,6 +2,12 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+Delete a To-do item (module hubbahub-todo-own, feature todo.dismiss; v1.js unchanged): POST /api/todo/dismiss {id} answers
+200 {ok: true, dismissed: id}; a repeat and an unknown id are ok too, 400 without id, 403 for a non-owner, 503 while the
+module starts. The item leaves snapshot.todo and the postponed list for good and does not go to todo_done; its author gets
+no signal. Clients show Delete in the item menu and in multi-select only when the hub declares the feature, hide the row
+at once and bring it back when the hub refuses.
+
 Words to a session the hub does not have (core PR #598): POST /api/send to a removed or never-created session answers 202 and
 puts the words in the hub's feed as an owner in row with addressed (the name that was written to; contract kinds.in.addressed).
 Clients show ordinary ticks, no unsent item, and a service line under the bubble "To Hub — X was removed". Older cores answer

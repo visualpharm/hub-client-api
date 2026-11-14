@@ -890,6 +890,15 @@
     },
     {
       "method": "POST",
+      "path": "/api/todo/dismiss",
+      "body": [
+        "id"
+      ],
+      "optional": true,
+      "feature": "todo.dismiss"
+    },
+    {
+      "method": "POST",
       "path": "/api/sidebar/hidden",
       "body": [
         "hidden"
