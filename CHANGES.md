@@ -2,6 +2,14 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+Inbox takeover and hold term in the contract (hub-plugin-teams docs/inbox-management.md; v1.js unchanged; contract inbox_protocol):
+draft_control action takeover {id, rid, inbox token, editor} answers draft_state with the same id and rid, held true, holder = editor,
+edit_version + 1 (the displaced client's token is stale; it keeps its text and may take back only with its own takeover); refusal is
+draft_control_failed {id, rid, error}. Offer "Continue here" only when the collector's config post says inbox_protocol.takeover: true.
+Hold term inbox_hold_ttl (config post; default 1800 s, 0 = none): at expiry the collector clears the hold, edit_version + 1 and posts
+draft_state reason expired, rid expired:N:id, held false for every open item of the conversation; the former holder must hold again
+before sending. Clients that know nothing of it keep working (stale Send gets send_blocked with a fresh token).
+
 Delete a To-do item (module hubbahub-todo-own, feature todo.dismiss; v1.js unchanged): POST /api/todo/dismiss {id} answers
 200 {ok: true, dismissed: id}; a repeat and an unknown id are ok too, 400 without id, 403 for a non-owner, 503 while the
 module starts. The item leaves snapshot.todo and the postponed list for good and does not go to todo_done; its author gets

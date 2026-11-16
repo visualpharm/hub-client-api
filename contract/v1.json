@@ -1221,5 +1221,113 @@
       "why": "string",
       "closed_ts": "number"
     }
+  },
+  "inbox_protocol": {
+    "about": "Inbox: перехват и срок удержания черновика (плагин hub-plugin-teams, docs/inbox-management.md «Takeover» и «Hold term»; посты ленты плагина, клиент шлёт через /api/feed/post, читает через /api/feed; v1.js без изменений). Токен inbox — как получен, клиент его не правит. Предлагать «Продолжить здесь» — только при config.inbox_protocol.takeover == true; сборщик без признака отвечает на takeover draft_control_failed. Срок inbox_hold_ttl — секунды от последнего hold или takeover (по умолчанию 1800; настройка владельца settings.inbox_hold_ttl, целое 0–604800, 0 — без срока; текущее значение в посте config). Свежий hold держателя срок обновляет; отложенный ответ в удержании срок не истекает. Истёк срок — сборщик снимает удержание, edit_version растёт на 1, и по каждому открытому пункту беседы приходит draft_state reason expired. Прежний держатель сохраняет свой локальный текст и до отправки обязан снова hold; истечение — не release владельца, автоотправки по этому поколению остаются отказаны до явного hold/takeover и release, ручной отправки или нового входящего. Отправка не подразумевает takeover: Send не-держателя отказан. Клиент без знания срока работает: Send со старым токеном получает прежний send_blocked со свежим токеном.",
+    "token": {
+      "v": "number!",
+      "version": "string!",
+      "edit_version": "number!",
+      "held": "boolean!",
+      "holder": "string",
+      "manual_followup": "boolean"
+    },
+    "config": {
+      "inbox_protocol": {
+        "takeover": "boolean",
+        "edit_version": "number"
+      },
+      "inbox_hold_ttl": "number"
+    },
+    "events": {
+      "draft_control": {
+        "about": "запрос клиента; action hold | release | takeover. takeover: inbox — текущий токен как получен (называет прежнего держателя), rid — новый уникальный, editor — id этого клиента (обязателен). Takeover свободного или без владельца удержания = hold.",
+        "kind!": "string!",
+        "id!": "string!",
+        "rid!": "string!",
+        "inbox!": {
+          "v": "number!",
+          "version": "string!",
+          "edit_version": "number!",
+          "held": "boolean!",
+          "holder": "string",
+          "manual_followup": "boolean"
+        },
+        "editor!": "string!",
+        "action!": "string!"
+      },
+      "draft_state": {
+        "about": "ответ сборщика на draft_control с тем же id и rid; после takeover — held true, holder = editor запросившего, edit_version + 1 (токен вытесненного устарел: его hold, release и Send отказаны, свой текст он оставляет и может вернуть беседу только своим takeover; его отложенный ответ со старым токеном отказан в свой час). Без срока: reason нет; по сроку: reason expired, rid expired:N:id (N — edit_version, id — пункт), held false, holder null — по каждому открытому пункту беседы, любой клиент может hold.",
+        "kind!": "string!",
+        "id!": "string!",
+        "rid!": "string!",
+        "reason": "string",
+        "inbox!": {
+          "v": "number!",
+          "version": "string!",
+          "edit_version": "number!",
+          "held": "boolean!",
+          "holder": "string",
+          "manual_followup": "boolean"
+        }
+      },
+      "draft_control_failed": {
+        "about": "отказ: устаревший токен (обновить и повторить с новым rid), нет editor или доставка уже занята на этой версии; сборщик старее договора отвечает так на takeover.",
+        "kind!": "string!",
+        "id!": "string!",
+        "rid!": "string!",
+        "error!": "string!"
+      }
+    },
+    "examples": {
+      "takeover": {
+        "kind": "draft_control",
+        "id": "i1",
+        "rid": "r-new",
+        "inbox": {
+          "v": 1,
+          "version": "h",
+          "edit_version": 7,
+          "held": true,
+          "holder": "web-1",
+          "manual_followup": false
+        },
+        "editor": "phone-1",
+        "action": "takeover"
+      },
+      "takeover_ok": {
+        "kind": "draft_state",
+        "id": "i1",
+        "rid": "r-new",
+        "inbox": {
+          "v": 1,
+          "version": "h",
+          "edit_version": 8,
+          "held": true,
+          "holder": "phone-1",
+          "manual_followup": false
+        }
+      },
+      "takeover_failed": {
+        "kind": "draft_control_failed",
+        "id": "i1",
+        "rid": "r-new",
+        "error": "stale token"
+      },
+      "expired": {
+        "kind": "draft_state",
+        "id": "i1",
+        "rid": "expired:9:i1",
+        "reason": "expired",
+        "inbox": {
+          "v": 1,
+          "version": "h",
+          "edit_version": 9,
+          "held": false,
+          "holder": null,
+          "manual_followup": false
+        }
+      }
+    }
   }
 }

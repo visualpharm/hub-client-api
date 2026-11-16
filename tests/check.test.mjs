@@ -697,3 +697,20 @@ test("Space 0.16.0: space_references/space_notes в снимке, ответы n
   for (const [path, feature] of [["/api/space/notes", "space.notes"], ["/api/space/references/article", "space.references"], ["/api/space/question", "space.references.cards"]])
     assert.equal(contract.requests.find((r) => r.path === path).feature, feature);
 });
+
+test("inbox_protocol: takeover и срок удержания описаны, примеры сходятся с токеном", () => {
+  const ip = contract.inbox_protocol;
+  assert.ok(ip, "раздел inbox_protocol есть");
+  for (const k of ["draft_control", "draft_state", "draft_control_failed"]) assert.ok(ip.events[k], k);
+  const { takeover, takeover_ok, takeover_failed, expired } = ip.examples;
+  assert.equal(takeover.action, "takeover");
+  assert.equal(takeover_ok.rid, takeover.rid);
+  assert.equal(takeover_ok.inbox.holder, takeover.editor);
+  assert.equal(takeover_ok.inbox.edit_version, takeover.inbox.edit_version + 1);
+  assert.equal(takeover_failed.rid, takeover.rid);
+  assert.equal(expired.reason, "expired");
+  assert.equal(expired.rid, `expired:${expired.inbox.edit_version}:${expired.id}`);
+  assert.equal(expired.inbox.held, false);
+  assert.equal(expired.inbox.holder, null);
+  for (const k of Object.keys(ip.token)) if (!k.endsWith("?")) assert.ok(k in takeover.inbox, k);
+});
