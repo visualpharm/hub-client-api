@@ -125,3 +125,6 @@ Decided: every client sends `app` (ios | mac | android) and `app_version` (CFBun
 signs the owner's message label in the session with the client and version (core api.js sendMessage, feature `send.app`). The core without the
 feature ignores unknown fields, so clients send them always and do not wait for the feature. They are listed in `absent` of the request. v1.js
 rules and rev stay. Undo: remove the two fields and the `absent` lines. By: agent (d1432801).
+
+## 2026-11-16 · Inbox takeover и срок удержания — в договоре отдельным разделом inbox_protocol
+Решение: события плагина hub-plugin-teams (draft_control/draft_state/draft_control_failed, config.inbox_protocol.takeover, inbox_hold_ttl, reason expired) описаны справочно в contract/v1.json, v1.js не менялся; источник истины — docs/inbox-management.md плагина. Схема токена повторена в трёх местах намеренно (читаемость), тест сверяет копии. Откат: удалить раздел inbox_protocol, запись в CHANGES и тест.

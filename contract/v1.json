@@ -1241,7 +1241,7 @@
     },
     "events": {
       "draft_control": {
-        "about": "запрос клиента; action hold | release | takeover. takeover: inbox — текущий токен как получен (называет прежнего держателя), rid — новый уникальный, editor — id этого клиента (обязателен). Takeover свободного или без владельца удержания = hold.",
+        "about": "запрос клиента; action hold | release | takeover. takeover: inbox — текущий токен как получен (называет прежнего держателя), rid — новый уникальный, editor — id этого клиента (обязателен). Takeover свободного или без владельца удержания равен hold (edit_version может не вырасти: клиент берёт токен из ответа draft_state, а не считает +1 сам).",
         "kind!": "string!",
         "id!": "string!",
         "rid!": "string!",

@@ -712,5 +712,10 @@ test("inbox_protocol: takeover и срок удержания описаны, п
   assert.equal(expired.rid, `expired:${expired.inbox.edit_version}:${expired.id}`);
   assert.equal(expired.inbox.held, false);
   assert.equal(expired.inbox.holder, null);
-  for (const k of Object.keys(ip.token)) if (!k.endsWith("?")) assert.ok(k in takeover.inbox, k);
+  for (const k of ["v", "version", "edit_version", "held"]) assert.ok(k in takeover.inbox && k in takeover_ok.inbox, k);
+  assert.deepEqual(ip.events.draft_control["inbox!"], ip.token);
+  assert.deepEqual(ip.events.draft_state["inbox!"], ip.token);
+  assert.ok("takeover" in ip.config.inbox_protocol && "inbox_hold_ttl" in ip.config);
+  assert.equal(takeover_ok.inbox.held, true);
+  assert.equal(typeof takeover_failed.error, "string");
 });
