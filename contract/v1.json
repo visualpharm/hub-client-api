@@ -1,6 +1,6 @@
 {
   "api": 1,
-  "about": "Что клиент версии 1 читает у хаба и что шлёт. «!» у типа или имени — поле обязано быть; без него — может не быть или быть null, но если есть, то этого типа. «*» — любой ключ. Хаб может добавлять поля и виды строк: клиент их не замечает. В requests: probe — параметры безопасной живой пробы GET; optional — есть не на каждом хабе (клиент прячет по features); absent — поле тела, которого нет в части ядер (значение — где нет и что делает клиент), сверка с кодом ядра его не требует; stream — поток событий. sessions_extra (feature session.quota_hold, модуль hubbahub-quota-hold на flagman) — поля сессий по имени, только сессии на паузе по лимиту: клиент накладывает запись на sessions[] с тем же именем (quota_hold, hold_mark.text — текст паузы, until — сброс); model_effective/model_fallback там всегда null. reactions.taken — всегда, и когда модуль «Реакции» выключен: свёртка отвеченного — не модуль. В /api/send: client_id — идемпотентность (повтор POST — одного сообщения), card — ответ на карточку вопроса qN; app (ios | mac | android) и app_version (CFBundleShortVersionString / versionName) — какой клиент и какой версии прислал слово (feature send.app): ядро подписывает по ним ярлык сообщения в сессии, ядро без признака поля не замечает, клиент шлёт их всегда, в каждом POST /api/send (текст, ответ на карточку, быстрая отправка, вложения), голосовое «сразу» кладёт их в send заявки /api/voice/save. Сниппеты (feature snippets): GET /api/snippets?lang=ru|en → answers.snippets; POST — op add{title,text}, edit{id,title,text}, delete{id}, pin{id,pinned}, move{id,to}, ответ тот же; настройки разбора snippets.auto (bool) и snippets.count (0–5) — /api/settings/set {key,value}, строки в snapshot.settings. Тред хаба — сессия sessions[] с kind \"hub\" (одна; адрес ленты хаба — её name). hub_name и hub_title — только подпись хаба для показа (на flagman hub_name = title из hub.json, по умолчанию пустая строка), не имя сессии: адрес ленты из них не берётся. files_port — порт модуля «Файлы» этого хаба (по умолчанию 8788; у второго хаба свой, из HUB_FILES_PORT): клиент строит ссылки на файлы (/raw?path=, /open?path=) на хосте хаба из настроек с этим портом; ключа нет (старый хаб, мок) — HUB_FILES_PORT клиента или 8788. Сверка отправок (feature send.audit, модуль hubbahub-send-audit): POST /api/send/audit {client, sent: [{client_id, ts, to, head}], unconfirmed: [client_id]} — до 500 id в списке, только клиент владельца (owner: заголовок X-Hub-Owner: 1, иначе 403); 400 — плохое тело, 503 — модуль запускается; ответ → answers.send_audit: confirmed (seq — номер события), missing (ядро не принимало: клиент показывает «Не отправлено» и повторяет с тем же client_id), rejected (ядро отказало, reason), pending (<20 с — спросить позже), too_old (>1 сут). Ключ снимка send_audit — счётчики модуля. Слова от имени агента (feature send.agent, модуль hubbahub-agent-send): POST /api/send/agent {agent (1–40 знаков, без [ ] и переводов строк), to (сессия), text (до 20000), client_id (до 128, необязателен)}; заголовок X-Hub: 1; 202 → answers.send_agent: {ok, seq, id} или {ok, queued}, повтор client_id за сутки — тот же ответ + duplicate; ошибки {error}: 400 тело, 404 нет сессии, 409 ядро отказало (повторить тем же client_id), 503 модуль читает журнал после старта (повтор только с client_id), 403 запрос с HTML-вида. В ленте это строка kind in: channel plugin, sender \"mod:hubbahub-agent-send\", from {kind: \"module\", name: \"hubbahub-agent-send\"}, текст начинается «[агент X] » — слова агента X, не владельца; различать по from.kind == module или sender с префиксом mod:. Поле кладёт ядро в строку ленты (views), в state.messages sender пуст. Поправка к отправленному (feature send.correction, модуль edit-message): POST /api/send/correction {session, text (новый текст), quote (прежний текст сообщения), client_id (до 128, необязателен)}; только клиент владельца (owner, иначе 403); 202 → answers.send_correction: {ok, seq} или {ok, queued}; ошибки {error}: 400 тело (нужны session, text и quote), 409 ядро отказало (повторить тем же client_id). Хаб записывает её словом владельца с correction: true — сессия читает его как поправку. Связь с исходным (feature send.correction.replaces, edit-message 0.2.0): в теле поправки replaces — точный id исходного (mN), только с этим признаком; модуль сам проверяет, что это более раннее слово владельца в той же сессии с видимой строкой ленты, цепочку правок сводит к первому исходному; непроверенный replaces поправку не отвергает — она уходит цитатой без связи. Строки /api/timeline поля replaces не несут: связи — в ключе снимка correction_refs {mПоправки: {replaces: mИсходного, session}} (до 1000 новейших и 96 КиБ; связей нет или проверка не удалась — {}), не вошедшую — GET /api/correction-ref?message=mN, только владелец: 200 {replaces, session} → answers.correction_ref; 400 не id вида mN, 403 не владелец, 404 связи нет, 503 проверка недоступна (спросить позже). Клиент ставит текст поправки на место пузыря исходного той же сессии (вложения и id исходного остаются, пометка «изменено»); нет связи, признака или исходной строки — поправка видна цитатой, как раньше. Ответ 202 сам связи не обещает. Телеметрия устройства (feature client.metrics, модуль hubbahub-client-metrics): POST /api/client/metrics {client_id, client: ios|mac, version, build, kind: metric|diagnostic, payload} — payload: MXMetricPayload или MXDiagnosticPayload (MetricKit jsonRepresentation) как есть, без слов исключения (composedMessage, arguments клиент убирает); client_id — один на отчёт (до 128 знаков), при повторе отправки тот же; client_id, version, build — латинские буквы, цифры, «.» и «-», с буквы или цифры (клиент убирает прочие знаки до отправки), version и build до 40; только клиент владельца (owner, иначе 403); 202 → answers.client_metrics: {ok, id}, повтор client_id — тот же id и duplicate: true, второй записи нет; 400 — неверное тело (error начинается с имени поля), 413 — тело больше 8 МБ: на 400 и 413 клиент снимает отчёт без повтора и без показа; 503 и сеть — повтор тем же client_id позже. Без признака клиент не шлёт ни одного запроса. Кадры вопроса (feature question.shots): ключ снимка question_shots {qN: {session, files: [{seq|null, path, url (/api/file?path=…), name, caption|null, kind image|video|file, ts, via turn|attach}]}} — только открытые карточки с кадрами, ключ = id в todo[] и sessions[].pending[]; закрытая карточка уходит из ключа за ~2 с. Клиент показывает кадры image миниатюрами под первым вопросом, до вариантов; video и file — строками с именем; нет признака или ключа — карточка как раньше. Аккаунты пула (модуль hubbahub-accounts-live): accounts_machine {account, how: org|reset} (feature accounts.machine) — какой аккаунт пула является входом этого компьютера, не опознан — ключа нет; клиент показывает квоту входа компьютера (limits без account при account.active = null) страницей этого аккаунта, без отдельной страницы «логин компьютера». accounts_meta {имя: {email, plan, how, by, at}} (feature accounts.meta) — подписи аккаунтов; почта аккаунта — accounts.pool[].email первой, accounts_meta запасной. Хаб, не поднявший ключ модуля наверх, отдаёт его в mods.hubbahub-accounts-live.<ключ>.value — клиент читает и там. Закрытые карточки сессии: sessions[].answered [{request_id, seq — номер события, где ядро применило ответ, sig — отпечаток решения (null у снятой карточки how withdrawn, как и client_id), client_id?, how answered|dismissed|withdrawn, id qN, ts, by, why}] — последние 16; признак «вопрос закрыт» — request_id в answered, не пустой pending. Ядро до flagman 21.10 и мок поля не шлют — клиент считает список пустым. To-do «в процессе» (feature todo.progress, модуль todo-own 0.16.0): у строки todo[] state \"progress\", progress_at — с какого момента (сек), progress_note — заметка (бывает не всегда); такие строки — в конце списка, вне счётчика плитки и колокола (notifications их не содержит). Без признака клиент поля не читает Взят ответом (модуль todo-own 0.31.1, feature todo.progress.reply): progress_by \"reply\" и progress_msg (mN ответа владельца) — секция «в процессе» отдельной серой группой внизу, как на вебе; без признака клиент эти два поля не читает. Граф связей (модуль todo-own 0.31.1, feature todo.linked): у строк todo[] и notifications[] поле linked [qN|pN…] — узлы (карточка, письмо Inbox), ответ на которые гасит и эту строку; это подсказка о решениях, которые модуль уже сделал в том же снимке, — клиент гасит связанное сразу и показывает одно решение один раз (строка Inbox с кнопками карточки q5 и вопрос To-do той же карточки — одна строка), откат — отказом хаба или возвратом строк снимком. Без признака клиент поле linked не читает. Уведомления (колокол): snapshot.notifications — строки повода [{id, kind blocker|info|inbox, title, body, since, updated, expires, target {kind, id, session, plugin}}]; у blocker (модуль todo-own 0.18.0, feature notifications.actions) ещё awaits_reply, request_id, card, tool и actions [{id, label, kind option|reply|allow|deny|open, question?, command?, link?}]: option — POST /api/answer {answers: {question: label}}, reply с question — /api/answer словами, без question — /api/send {todo}; allow/deny — /api/permission (есть request_id) или /api/tools (tool); open — link или command. Без признака клиент кнопок не показывает. Поводы пушей (feature push.alerts, Plugin API 1.26): snapshot.alerts [{key, id, kind question|tool|notice, session?, card?, title, body, since, v}] — key = hub.key пуша и apns-collapse-id; клиент по key находит строку колокола и её кнопки для ответа с пуша. Отправитель повода: sender в alerts[] — у notice id отправителя (сессия, mod:<имя>, ext:<имя>, schedule:<имя>, core…), у question и tool поля нет — отправитель сессия повода (session). В пуше то же самое в hub.sender (необязательное поле payload рядом с hub.key и hub.kind; для question и tool — имя сессии): клиент показывает его второй строкой уведомления, если её там ещё нет; пуш без hub.sender — по top-level session. Пересказ ядра о действии владельца над карточкой (feature feed.on_behalf, ядро PR #498): ответ на карточку, её закрытие или снятие ядро пишет сессии от имени владельца («Ответ владельца на вопрос qN: …»); строка in — sender \"ядро\", from {kind: \"core\"}, on_behalf \"owner\", у ответа и закрытия ещё answer_to \"qN\"; сам ответ — строка answer того же seq. Это не слова владельца: клиент не рисует такую строку его пузырём и не считает его словом (поправки, свёртка отвеченного); хаб без признака даёт ей sender \"владелец\" и from {kind: \"owner\"} — строку in с answer_to клиент считает так же. Слово сессии, которой у хаба нет (ядро PR #598, flagman bc7a7a95): POST /api/send к удалённой или никогда не бывшей сессии отвечает 202, как обычное, а слово ложится в ленту хаба строкой in владельца (from {kind: \"owner\"}) с addressed — имя, которому писали; клиент показывает обычные галочки, без пункта «не принято», и под пузырём служебную строку «Хабу — адресат X удалён» (не ошибку и не кнопку). Ядро до PR #598 отвечает 404 {error: «Сессии X нет.»} — клиент не предлагает повтор, а даёт убрать неотправленное, текст возвращается в поле ввода.",
+  "about": "Что клиент версии 1 читает у хаба и что шлёт. «!» у типа или имени — поле обязано быть; без него — может не быть или быть null, но если есть, то этого типа. «*» — любой ключ. Хаб может добавлять поля и виды строк: клиент их не замечает. В requests: probe — параметры безопасной живой пробы GET; optional — есть не на каждом хабе (клиент прячет по features); absent — поле тела, которого нет в части ядер (значение — где нет и что делает клиент), сверка с кодом ядра его не требует; stream — поток событий. sessions_extra (feature session.quota_hold, модуль hubbahub-quota-hold на flagman) — поля сессий по имени, только сессии на паузе по лимиту: клиент накладывает запись на sessions[] с тем же именем (quota_hold, hold_mark.text — текст паузы, until — сброс); model_effective/model_fallback там всегда null. reactions.taken — всегда, и когда модуль «Реакции» выключен: свёртка отвеченного — не модуль. В /api/send: client_id — идемпотентность (повтор POST — одного сообщения), card — ответ на карточку вопроса qN; app (ios | mac | android) и app_version (CFBundleShortVersionString / versionName) — какой клиент и какой версии прислал слово (feature send.app): ядро подписывает по ним ярлык сообщения в сессии, ядро без признака поля не замечает, клиент шлёт их всегда, в каждом POST /api/send (текст, ответ на карточку, быстрая отправка, вложения), голосовое «сразу» кладёт их в send заявки /api/voice/save. Сниппеты (feature snippets): GET /api/snippets?lang=ru|en → answers.snippets; POST — op add{title,text}, edit{id,title,text}, delete{id}, pin{id,pinned}, move{id,to}, ответ тот же; настройки разбора snippets.auto (bool) и snippets.count (0–5) — /api/settings/set {key,value}, строки в snapshot.settings. Тред хаба — сессия sessions[] с kind \"hub\" (одна; адрес ленты хаба — её name). hub_name и hub_title — только подпись хаба для показа (на flagman hub_name = title из hub.json, по умолчанию пустая строка), не имя сессии: адрес ленты из них не берётся. files_port — порт модуля «Файлы» этого хаба (по умолчанию 8788; у второго хаба свой, из HUB_FILES_PORT): клиент строит ссылки на файлы (/raw?path=, /open?path=) на хосте хаба из настроек с этим портом; ключа нет (старый хаб, мок) — HUB_FILES_PORT клиента или 8788. Сверка отправок (feature send.audit, модуль hubbahub-send-audit): POST /api/send/audit {client, sent: [{client_id, ts, to, head}], unconfirmed: [client_id]} — до 500 id в списке, только клиент владельца (owner: заголовок X-Hub-Owner: 1, иначе 403); 400 — плохое тело, 503 — модуль запускается; ответ → answers.send_audit: confirmed (seq — номер события), missing (ядро не принимало: клиент показывает «Не отправлено» и повторяет с тем же client_id), rejected (ядро отказало, reason), pending (<20 с — спросить позже), too_old (>1 сут). Ключ снимка send_audit — счётчики модуля. Слова от имени агента (feature send.agent, модуль hubbahub-agent-send): POST /api/send/agent {agent (1–40 знаков, без [ ] и переводов строк), to (сессия), text (до 20000), client_id (до 128, необязателен)}; заголовок X-Hub: 1; 202 → answers.send_agent: {ok, seq, id} или {ok, queued}, повтор client_id за сутки — тот же ответ + duplicate; ошибки {error}: 400 тело, 404 нет сессии, 409 ядро отказало (повторить тем же client_id), 503 модуль читает журнал после старта (повтор только с client_id), 403 запрос с HTML-вида. В ленте это строка kind in: channel plugin, sender \"mod:hubbahub-agent-send\", from {kind: \"module\", name: \"hubbahub-agent-send\"}, текст начинается «[агент X] » — слова агента X, не владельца; различать по from.kind == module или sender с префиксом mod:. Поле кладёт ядро в строку ленты (views), в state.messages sender пуст. Поправка к отправленному (feature send.correction, модуль edit-message): POST /api/send/correction {session, text (новый текст), quote (прежний текст сообщения), client_id (до 128, необязателен)}; только клиент владельца (owner, иначе 403); 202 → answers.send_correction: {ok, seq} или {ok, queued}; ошибки {error}: 400 тело (нужны session, text и quote), 409 ядро отказало (повторить тем же client_id). Хаб записывает её словом владельца с correction: true — сессия читает его как поправку. Связь с исходным (feature send.correction.replaces, edit-message 0.2.0): в теле поправки replaces — точный id исходного (mN), только с этим признаком; модуль сам проверяет, что это более раннее слово владельца в той же сессии с видимой строкой ленты, цепочку правок сводит к первому исходному; непроверенный replaces поправку не отвергает — она уходит цитатой без связи. Строки /api/timeline поля replaces не несут: связи — в ключе снимка correction_refs {mПоправки: {replaces: mИсходного, session}} (до 1000 новейших и 96 КиБ; связей нет или проверка не удалась — {}), не вошедшую — GET /api/correction-ref?message=mN, только владелец: 200 {replaces, session} → answers.correction_ref; 400 не id вида mN, 403 не владелец, 404 связи нет, 503 проверка недоступна (спросить позже). Клиент ставит текст поправки на место пузыря исходного той же сессии (вложения и id исходного остаются, пометка «изменено»); нет связи, признака или исходной строки — поправка видна цитатой, как раньше. Ответ 202 сам связи не обещает. Телеметрия устройства (feature client.metrics, модуль hubbahub-client-metrics): POST /api/client/metrics {client_id, client: ios|mac, version, build, kind: metric|diagnostic, payload} — payload: MXMetricPayload или MXDiagnosticPayload (MetricKit jsonRepresentation) как есть, без слов исключения (composedMessage, arguments клиент убирает); client_id — один на отчёт (до 128 знаков), при повторе отправки тот же; client_id, version, build — латинские буквы, цифры, «.» и «-», с буквы или цифры (клиент убирает прочие знаки до отправки), version и build до 40; только клиент владельца (owner, иначе 403); 202 → answers.client_metrics: {ok, id}, повтор client_id — тот же id и duplicate: true, второй записи нет; 400 — неверное тело (error начинается с имени поля), 413 — тело больше 8 МБ: на 400 и 413 клиент снимает отчёт без повтора и без показа; 503 и сеть — повтор тем же client_id позже. Без признака клиент не шлёт ни одного запроса. Кадры вопроса (feature question.shots): ключ снимка question_shots {qN: {session, files: [{seq|null, path, url (/api/file?path=…), name, caption|null, kind image|video|file, ts, via turn|attach}]}} — только открытые карточки с кадрами, ключ = id в todo[] и sessions[].pending[]; закрытая карточка уходит из ключа за ~2 с. Клиент показывает кадры image миниатюрами под первым вопросом, до вариантов; video и file — строками с именем; нет признака или ключа — карточка как раньше. Аккаунты пула (модуль hubbahub-accounts-live): accounts_machine {account, how: org|reset} (feature accounts.machine) — какой аккаунт пула является входом этого компьютера, не опознан — ключа нет; клиент показывает квоту входа компьютера (limits без account при account.active = null) страницей этого аккаунта, без отдельной страницы «логин компьютера». accounts_meta {имя: {email, plan, how, by, at}} (feature accounts.meta) — подписи аккаунтов; почта аккаунта — accounts.pool[].email первой, accounts_meta запасной. Хаб, не поднявший ключ модуля наверх, отдаёт его в mods.hubbahub-accounts-live.<ключ>.value — клиент читает и там. Закрытые карточки сессии: sessions[].answered [{request_id, seq — номер события, где ядро применило ответ, sig — отпечаток решения (null у снятой карточки how withdrawn, как и client_id), client_id?, how answered|dismissed|withdrawn, id qN, ts, by, why}] — последние 16; признак «вопрос закрыт» — request_id в answered, не пустой pending. Ядро до flagman 21.10 и мок поля не шлют — клиент считает список пустым. To-do «в процессе» (feature todo.progress, модуль todo-own 0.16.0): у строки todo[] state \"progress\", progress_at — с какого момента (сек), progress_note — заметка (бывает не всегда); такие строки — в конце списка, вне счётчика плитки и колокола (notifications их не содержит). Без признака клиент поля не читает Взят ответом (модуль todo-own 0.31.1, feature todo.progress.reply): progress_by \"reply\" и progress_msg (mN ответа владельца) — секция «в процессе» отдельной серой группой внизу, как на вебе; без признака клиент эти два поля не читает. Граф связей (модуль todo-own 0.31.1, feature todo.linked): у строк todo[] и notifications[] поле linked [qN|pN…] — узлы (карточка, письмо Inbox), ответ на которые гасит и эту строку; это подсказка о решениях, которые модуль уже сделал в том же снимке, — клиент гасит связанное сразу и показывает одно решение один раз (строка Inbox с кнопками карточки q5 и вопрос To-do той же карточки — одна строка), откат — отказом хаба или возвратом строк снимком. Без признака клиент поле linked не читает. Уведомления (колокол): snapshot.notifications — строки повода [{id, kind blocker|info|inbox, title, body, since, updated, expires, target {kind, id, session, plugin}}]; у blocker (модуль todo-own 0.18.0, feature notifications.actions) ещё awaits_reply, request_id, card, tool и actions [{id, label, kind option|reply|allow|deny|open, question?, command?, link?}]: option — POST /api/answer {answers: {question: label}}, reply с question — /api/answer словами, без question — /api/send {todo}; allow/deny — /api/permission (есть request_id) или /api/tools (tool); open — link или command. Без признака клиент кнопок не показывает. Поводы пушей (feature push.alerts, Plugin API 1.26): snapshot.alerts [{key, id, kind question|tool|notice, session?, card?, title, body, since, v}] — key = hub.key пуша и apns-collapse-id; клиент по key находит строку колокола и её кнопки для ответа с пуша. Отправитель повода: sender в alerts[] — у notice id отправителя (сессия, mod:<имя>, ext:<имя>, schedule:<имя>, core…), у question и tool поля нет — отправитель сессия повода (session). В пуше то же самое в hub.sender (необязательное поле payload рядом с hub.key и hub.kind; для question и tool — имя сессии): клиент показывает его второй строкой уведомления, если её там ещё нет; пуш без hub.sender — по top-level session. Пересказ ядра о действии владельца над карточкой (feature feed.on_behalf, ядро PR #498): ответ на карточку, её закрытие или снятие ядро пишет сессии от имени владельца («Ответ владельца на вопрос qN: …»); строка in — sender \"ядро\", from {kind: \"core\"}, on_behalf \"owner\", у ответа и закрытия ещё answer_to \"qN\"; сам ответ — строка answer того же seq. Это не слова владельца: клиент не рисует такую строку его пузырём и не считает его словом (поправки, свёртка отвеченного); хаб без признака даёт ей sender \"владелец\" и from {kind: \"owner\"} — строку in с answer_to клиент считает так же. Слово сессии, которой у хаба нет (ядро PR #598, flagman bc7a7a95): POST /api/send к удалённой или никогда не бывшей сессии отвечает 202, как обычное, а слово ложится в ленту хаба строкой in владельца (from {kind: \"owner\"}) с addressed — имя, которому писали; клиент показывает обычные галочки, без пункта «не принято», и под пузырём служебную строку «Хабу — адресат X удалён» (не ошибку и не кнопку). Ядро до PR #598 отвечает 404 {error: «Сессии X нет.»} — клиент не предлагает повтор, а даёт убрать неотправленное, текст возвращается в поле ввода. answer — ключ формы ответа в answers (action — общий ответ команды: 202 {ok} | {ok, queued, text}, когда ядро не успело записать, | {ok, seq}; отказ — {error} словами); note — что делает хаб и клиент.",
   "snapshot": {
     "seq": "number!",
     "epoch": "string!",
@@ -1001,6 +1001,395 @@
       "optional": true,
       "feature": "space.references.cards",
       "owner": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/away",
+      "body": [],
+      "answer": "action",
+      "note": "«Ушёл» без срока (ядро owner.away); клиенты шлют {}, hours (0 < ч ≤ 720) ядро читает, клиенты не шлют. Отказ — 409 {error} словами."
+    },
+    {
+      "method": "POST",
+      "path": "/api/owner/back",
+      "body": [],
+      "answer": "action",
+      "note": "«На месте» (ядро owner.back): 202 {ok, text}; 409 {error} — владелец и так на месте, клиенты считают это успехом; 503 — снимок ещё не прочитан."
+    },
+    {
+      "method": "POST",
+      "path": "/api/interrupt",
+      "body": [
+        "session"
+      ],
+      "answer": "action",
+      "note": "«Стоп» — оборвать идущий ход (ядро session.interrupt_requested). Путь клиенты берут из команды stop в снимке, этот — запасной. 409 {error} — сессия не в ходе."
+    },
+    {
+      "method": "POST",
+      "path": "/api/session/compact",
+      "body": [
+        "session"
+      ],
+      "answer": "action",
+      "note": "«Сжать» (ядро session.compact_requested); text — что сохранить — ядро читает, клиенты не шлют. Путь — из команды compact в снимке, этот — запасной. 409 {error} — отказ по состоянию словами."
+    },
+    {
+      "method": "POST",
+      "path": "/api/session/reload",
+      "body": [
+        "session"
+      ],
+      "answer": "action",
+      "note": "«Перезапустить» (ядро session.reload_requested); путь — из команды reload в снимке, этот — запасной. 409 {error} — спящая или освобождённая сессия."
+    },
+    {
+      "method": "POST",
+      "path": "/api/session/remove",
+      "body": [
+        "session"
+      ],
+      "answer": "action",
+      "note": "«Удалить…» спящую, освобождённую или упавшую сессию (ядро session.remove_requested); 409 {error} — сессия работает или системная. Клиент убирает строку сразу, отказ возвращает её со снимком."
+    },
+    {
+      "method": "POST",
+      "path": "/api/question/dismiss",
+      "body": [
+        "session",
+        "request_id"
+      ],
+      "answer": "action",
+      "note": "Закрыть карточку без ответа (как × на странице); тот же разбор, что /api/answer: 202 {ok, seq}, повтор — 200 {ok, already, seq}, 409 {error} — карточки нет или закрыта иначе. Клиенты снимают карточку и пункт To-do с тем же request_id сразу."
+    },
+    {
+      "method": "POST",
+      "path": "/api/accounts/use",
+      "body": [
+        "account",
+        "force"
+      ],
+      "optional": true,
+      "feature": "accounts.use",
+      "owner": true,
+      "answer": "accounts_use",
+      "errors": {
+        "409": {
+          "error!": "string",
+          "code!": "string",
+          "until": "number",
+          "forceable": "boolean",
+          "why": "string"
+        }
+      },
+      "errors_note": "409 — пул на паузе (code paused) или аккаунт занят (code busy: until — срок, why — причина словами); 404 — аккаунта нет в пуле; 503 — модуль входа не ответил. Клиент шлёт force: true — переход по слову владельца, порог 95 % его не держит.",
+      "note": "Перейти на аккаунт Claude сейчас (блок расхода). Активный после перехода — account.active в снимке."
+    },
+    {
+      "method": "POST",
+      "path": "/api/session/rename",
+      "body": [
+        "session",
+        "to"
+      ],
+      "optional": true,
+      "feature": "session.rename",
+      "owner": true,
+      "answer": "action",
+      "note": "Модуль hubbahub: только у спящей сессии (ядро session.renamed); 409 {error} — не спит или имя занято, 400 — то же имя."
+    },
+    {
+      "method": "POST",
+      "path": "/api/session/wake",
+      "body": [
+        "session"
+      ],
+      "optional": true,
+      "feature": "session.wake",
+      "owner": true,
+      "answer": "action",
+      "note": "Модуль hubbahub: разбудить спящую (ядро session.wake_requested); 409 {error} — не спит."
+    },
+    {
+      "method": "POST",
+      "path": "/api/client/theme",
+      "body": [
+        "theme",
+        "client"
+      ],
+      "optional": true,
+      "feature": "client.theme",
+      "owner": true,
+      "answer": "action",
+      "note": "Модуль hubbahub: тема клиента dark | light (client — латиница, цифры, «_-», до 32 знаков) для отправителей картинок (hub theme); 202 {ok}. Шлёт iOS/Mac; Android — нет."
+    },
+    {
+      "method": "POST",
+      "path": "/api/presence/location",
+      "body": [
+        "lat",
+        "lon",
+        "accuracy_m",
+        "at",
+        "app",
+        "city",
+        "wifi",
+        "force",
+        "rid"
+      ],
+      "optional": true,
+      "feature": "location.report",
+      "owner": true,
+      "answer": "presence_location",
+      "errors": {
+        "429": {
+          "ok": "boolean",
+          "retry_after": "number"
+        }
+      },
+      "errors_note": "429 — чаще окна 15 минут: retry_after и заголовок Retry-After в секундах; клиент ждёт столько. 400 {error} — тело, 403 — не владелец.",
+      "note": "Модуль hubbahub-presence: примерное место (огрублённые lat/lon, accuracy_m целыми метрами, at — unix-секунды, app ios|mac|android, city?, wifi {bssid?, ssid?}?). force — мимо окна 15 минут (место с сообщением), rid — ответ на запрос location.request {id} (feature location.request); force и rid шлёт Android, iPhone/Mac пока нет."
+    },
+    {
+      "method": "POST",
+      "path": "/api/quick-route",
+      "body": [
+        "text"
+      ],
+      "optional": true,
+      "feature": "quick-route",
+      "owner": true,
+      "answer": "quick_route",
+      "note": "Модуль hubbahub-quick-route: адресат быстрой отправки ⚡ «Авто» по тексту; ничего не отправляет. 409 — хаба нет, 502 — страница хаба не ответила; без адресата клиент говорит «недоступно»."
+    },
+    {
+      "method": "POST",
+      "path": "/api/screencast/send",
+      "body": [
+        "session",
+        "text",
+        "attachments",
+        "quote",
+        "card",
+        "todo",
+        "ref",
+        "client_id",
+        "wake",
+        "app",
+        "app_version"
+      ],
+      "optional": true,
+      "feature": "screencast.digest",
+      "owner": true,
+      "answer": "screencast_send",
+      "note": "Модуль hubbahub-screencast: скринкаст вместо /api/send, тело — как у /api/send, во вложениях ровно одно видео (и трек *.events.jsonl). Сессии сообщение уходит после разбора. 404 — модуль выключили посреди отправки: клиент шлёт как раньше через /api/send; 400 {error} — тело."
+    },
+    {
+      "method": "GET",
+      "path": "/api/screencast/status",
+      "query": [
+        "id"
+      ],
+      "optional": true,
+      "feature": "screencast.digest",
+      "answer": "screencast_status",
+      "note": "Итог заявки скринкаста; 404 — модуль заявки не знает (клиент перестаёт спрашивать). Живой пробы нет: без своей заявки ручка честно отвечает 404."
+    },
+    {
+      "method": "POST",
+      "path": "/api/telemetry/input",
+      "body": [
+        "events"
+      ],
+      "optional": true,
+      "feature": "telemetry.input",
+      "owner": true,
+      "answer": "telemetry_input",
+      "note": "Путь ввода владельца без текста и звука: events ≤ 50, тело ≤ 16 КБ; событие строго {client_id, ev, at, session?, m?, dur_ms?, reason?, app, app_version}, ev — rec.start | rec.stop | rec.cancel | send.queued | send.accepted | send.failed (reason network | timeout | refused | server | other); лишнее поле — 400 всей пачки. Повтор (client_id, ev) ядро отбрасывает. Ядро — PR input-routed, во flagman не влит: признака в живом снимке нет, клиенты копят события кольцом и не шлют."
+    },
+    {
+      "method": "POST",
+      "path": "/api/todo/done",
+      "body": [
+        "id"
+      ],
+      "optional": true,
+      "owner": true,
+      "answer": "todo_done",
+      "note": "Модуль hubbahub-todo-own (ключ снимка todo, без признака): «Сделано» владельца; сессии пункта — к сведению. 404 — пункт не свой, 409 {error} — модуль отказал, 503 — модуль запускается. Модуль читает и path (файл открыт), клиенты шлют только id; снять отметку — /api/todo/undone."
+    },
+    {
+      "method": "GET",
+      "path": "/api/usage/cycles",
+      "query": [
+        "window",
+        "n",
+        "before"
+      ],
+      "optional": true,
+      "owner": true,
+      "answer": "usage_cycles",
+      "probe": "window=five_hour&n=2",
+      "note": "Модуль hubbahub-usage (без признака; нет модуля — 404): лист «Расход за неделю» по окну лимита (five_hour, seven_day…; по моделям истории нет), n 2–100, before — next_before прошлой страницы. Первым — текущий цикл активного аккаунта. 503 {error} — история ещё собирается (ждать до 60 с), 400 — окно, n или курсор."
+    },
+    {
+      "method": "POST",
+      "path": "/api/ask",
+      "body": [
+        "session",
+        "question",
+        "client_id"
+      ],
+      "optional": true,
+      "feature": "ask.feed",
+      "owner": true,
+      "answer": "ask_job",
+      "note": "Модуль hubbahub-feed-ask: вопрос по ленте сессии; 202 {status: pending, job} — дальше GET /api/ask?job=; повтор с тем же client_id отдаёт то же задание, другой вопрос с ним — 409. 429 — уже два вопроса; ошибки — {error: {code, message}}. iOS шлёт ещё прогрев {session, warm: true} — модуль 0.3.0 его не знает и отвечает 400, клиент ответ не читает."
+    },
+    {
+      "method": "GET",
+      "path": "/api/ask",
+      "query": [
+        "job"
+      ],
+      "optional": true,
+      "feature": "ask.feed",
+      "owner": true,
+      "answer": "ask_job",
+      "note": "Опрос задания feed-ask до status done | error; 404 {error} — задание истекло (модуль держит его 10 минут)."
+    },
+    {
+      "method": "GET",
+      "path": "/api/ask/source",
+      "query": [
+        "job",
+        "n",
+        "digest"
+      ],
+      "optional": true,
+      "feature": "ask.feed",
+      "owner": true,
+      "answer": "ask_source",
+      "note": "Источник [N] ответа feed-ask: хаб сверяет номер, слепок записи и ленту. 404 {error} — источника больше нет, 409 — запись изменилась. Прежняя форма iOS без job (session, session_id, seq, digest) модулем 0.3.0 не принимается — 400."
+    },
+    {
+      "method": "GET",
+      "path": "/api/send/receipt",
+      "query": [
+        "session",
+        "client_id"
+      ],
+      "optional": true,
+      "answer": "send_receipt",
+      "note": "Квитанция отправки по client_id (ядро API 1.29): accepted {seq, id} — ядро приняло; pending — лежит в ящике ядра; refused {error, code?} — отказ ядра его словами; unknown — не видело. routed — куда легло (признак send.routed). Клиент спрашивает, когда сверка (send.audit) не нашла отправку в журнале. Старое ядро (400, 404, 405) и 503 (читатель журнала занят) — квитанции нет: повтор тем же client_id безопасен."
+    },
+    {
+      "method": "POST",
+      "path": "/api/tools",
+      "body": [
+        "session",
+        "tool",
+        "action"
+      ],
+      "answer": "action",
+      "note": "Разрешить или запретить инструмент, ждущий владельца (action approve | deny; ядро tools.approved | tools.denied): 202 {ok}. reason ядро читает, клиенты не шлют. 409 {error} — такого запроса нет или он уже решён."
+    },
+    {
+      "method": "POST",
+      "path": "/api/voice/save",
+      "body": [
+        "data",
+        "mime",
+        "send"
+      ],
+      "optional": true,
+      "feature": "voice.send_async",
+      "owner": true,
+      "answer": "voice_save",
+      "errors": {
+        "502": {
+          "error!": "string",
+          "id!": "string"
+        }
+      },
+      "errors_note": "400 {error} — запись или send не прочитались; 403 — не владелец; 502 {error, id} — расшифровка без send не удалась (запись сохранена под id).",
+      "note": "Модуль hubbahub-voice-own: голосовое «отправить сразу» — data (base64), mime, send {session, text?, quote?, todo?, client_id, app?, app_version?, wake? (voice.send_wake), attachments? (voice.send_async_attachments, ≤20 объектов /api/upload)}; U+FFFC в text — место записи (voice.inline_position). Ответ сразу 202 {id, state, send: pending}: модуль расшифрует и отправит сессии сам, итог — /api/voice/status и ключ снимка voice. Повтор того же client_id — та же заявка (duplicate). Без признака клиенты расшифровывают сами и шлют /api/send."
+    },
+    {
+      "method": "GET",
+      "path": "/api/voice/status",
+      "query": [
+        "id"
+      ],
+      "optional": true,
+      "feature": "voice.send_async",
+      "owner": true,
+      "answer": "voice_status",
+      "note": "Итог записи и заявки «отправить сразу»: state pending | ok | failed (text при ok), send.state pending | sent | failed (seq, error). 404 — записи с таким id нет: клиент перестаёт спрашивать."
+    },
+    {
+      "method": "POST",
+      "path": "/api/upload/forget",
+      "body": [
+        "path"
+      ],
+      "optional": true,
+      "feature": "upload.forget",
+      "owner": true,
+      "answer": "upload_forget",
+      "note": "Модуль hubbahub-upload-forget: загрузка, убранная из поля до отправки, стирается сразу; path — из ответа /api/upload. 200 {ok, removed} (removed false — уже нет); 400 — путь не attachments/id/имя; 409 {error} — на загрузку уже есть ссылка (in_use); 503 — модуль запускается. Шлёт iOS/Mac; Android — нет."
+    },
+    {
+      "method": "POST",
+      "path": "/api/refresh",
+      "body": [],
+      "optional": true,
+      "answer": "refresh",
+      "note": "Потяг ленты вниз: хаб сбрасывает короткий кэш снимка (модуль client-misc, в форке — ядро). 200 {ok, gen}. Нет ручки — 404, клиент молча читает снимок как обычно. Шлёт iOS/Mac; Android — нет."
+    },
+    {
+      "method": "POST",
+      "path": "/api/mod/hubbahub-auto-away/active",
+      "body": [],
+      "optional": true,
+      "feature": "owner.auto_away",
+      "owner": true,
+      "answer": "auto_away_active",
+      "note": "Модуль hubbahub-auto-away: пульс клиента, окно которого видно и с которым взаимодействуют; снимает только автоматический уход. 200 {ok, minutes, auto} — auto true: хаб сейчас в автоуходе и этот пульс вернёт владельца. 403 — не владелец, 503 — модуль запускается."
+    },
+    {
+      "method": "GET",
+      "path": "/api/mod/hubbahub-podcast/chapters",
+      "query": [
+        "file"
+      ],
+      "optional": true,
+      "feature": "owner.podcast",
+      "answer": "podcast_chapters",
+      "note": "Модуль hubbahub-podcast: главы подкаста для плеера ленты; file — путь вложения из ленты (…/podcast-день-время-id/podcast.m4a). Главы встык от 0 до длины файла. 400 — не путь подкаста, 404 — у подкаста нет разметки: плеер без глав."
+    },
+    {
+      "method": "POST",
+      "path": "/api/mod/hubbahub-todo-own/later",
+      "body": [
+        "id",
+        "when",
+        "clear"
+      ],
+      "optional": true,
+      "feature": "todo.later",
+      "owner": true,
+      "answer": "todo_later",
+      "note": "Модуль hubbahub-todo-own: «Отложить» пункт To-do. when — epoch (с) или текст («завтра 10»); clear: true (или без when) — вернуть сейчас. 200 {ok, id, later, text} (text — когда вернётся словами хаба; при возврате later и text null). 400 {error} — не понял время, прошло или пункта нет (слова хаба клиент показывает без служебного «когда показать:»); 403, 503."
+    },
+    {
+      "method": "GET",
+      "path": "/api/mod/hubbahub-todo-own/later",
+      "optional": true,
+      "feature": "todo.later",
+      "answer": "todo_later_list",
+      "probe": "",
+      "note": "Список отложенных (в снимке его нет): строки как в snapshot.todo плюс later и later_text. 503 — список ещё не собран."
     }
   ],
   "answers": {
@@ -1228,6 +1617,209 @@
       ],
       "why": "string",
       "closed_ts": "number"
+    },
+    "action": {
+      "ok": "boolean",
+      "queued": "boolean",
+      "text": "string",
+      "seq": "number",
+      "already": "boolean",
+      "error": "string"
+    },
+    "accounts_use": {
+      "ok!": "boolean",
+      "active!": "string",
+      "text": "string"
+    },
+    "presence_location": {
+      "ok!": "boolean",
+      "place": "string",
+      "city": "string"
+    },
+    "quick_route": {
+      "session!": "string",
+      "fallback": "string"
+    },
+    "screencast_send": {
+      "id!": "string",
+      "state!": "string",
+      "duplicate": "boolean"
+    },
+    "screencast_status": {
+      "id!": "string",
+      "state!": "string",
+      "session": "string",
+      "at": "number",
+      "client_id": "string",
+      "seq": "number",
+      "summary": "string"
+    },
+    "telemetry_input": {
+      "ok!": "boolean",
+      "accepted": "number",
+      "dropped": "number"
+    },
+    "todo_done": {
+      "ok!": "boolean",
+      "done": [
+        "string"
+      ]
+    },
+    "usage_cycles": {
+      "version!": "number",
+      "cycles!": [
+        {
+          "id!": "string",
+          "window!": "string",
+          "identity!": {
+            "provider": "string",
+            "account": "string",
+            "plan": "string",
+            "quota": "string"
+          },
+          "boundary": {
+            "kind!": "string",
+            "after!": "number",
+            "before!": "number"
+          },
+          "samples!": [
+            {
+              "seq!": "number",
+              "ts!": "number",
+              "used": "number",
+              "reset": "number",
+              "quality!": "string"
+            }
+          ],
+          "truncated": "boolean",
+          "legacy_identity": "boolean"
+        }
+      ],
+      "more!": "boolean",
+      "next_before": "string",
+      "active": "string",
+      "now": "number"
+    },
+    "ask_job": {
+      "job": "string",
+      "status!": "string",
+      "session": "string",
+      "session_id": "string",
+      "answer": "string",
+      "model": "string",
+      "rows": "number",
+      "truncated": "boolean",
+      "sources": [
+        {
+          "n!": "number",
+          "seq!": "number",
+          "row_id!": "string",
+          "digest!": "string",
+          "kind": "string"
+        }
+      ],
+      "error": {
+        "code!": "string",
+        "message": "string"
+      }
+    },
+    "ask_source": {
+      "status!": "string",
+      "session": "string",
+      "session_id": "string",
+      "seq": "number",
+      "row_id": "string",
+      "digest": "string"
+    },
+    "send_receipt": {
+      "receipt!": "string",
+      "seq": "number",
+      "id": "string",
+      "error": "string",
+      "code": "string",
+      "routed": {
+        "session": "string",
+        "to": "string",
+        "relayed_for": "string",
+        "redirected": "boolean",
+        "task": "string",
+        "tasks": [
+          "string"
+        ],
+        "state": "string"
+      }
+    },
+    "voice_save": {
+      "id!": "string",
+      "state": "string",
+      "send": "string",
+      "route": "string",
+      "routed_to": "string",
+      "route_reason": "string",
+      "duplicate": "boolean",
+      "text": "string",
+      "model": "string"
+    },
+    "voice_status": {
+      "id!": "string",
+      "state!": "string",
+      "text": "string",
+      "model": "string",
+      "error": "string",
+      "engines": "any",
+      "send": {
+        "state!": "string",
+        "seq": "number",
+        "error": "string",
+        "client_id": "string",
+        "session": "string",
+        "route": "string",
+        "routed_to": "string",
+        "route_reason": "string"
+      }
+    },
+    "upload_forget": {
+      "ok!": "boolean",
+      "removed!": "boolean",
+      "bytes": "number"
+    },
+    "refresh": {
+      "ok!": "boolean",
+      "gen": "number"
+    },
+    "auto_away_active": {
+      "ok!": "boolean",
+      "minutes": "number",
+      "auto!": "boolean"
+    },
+    "podcast_chapters": {
+      "file!": "string",
+      "duration_s": "number",
+      "chapters!": [
+        {
+          "start_s!": "number",
+          "end_s": "number",
+          "title": "string"
+        }
+      ]
+    },
+    "todo_later": {
+      "ok!": "boolean",
+      "id!": "string",
+      "later": "number",
+      "text": "string"
+    },
+    "todo_later_list": {
+      "later!": [
+        {
+          "id": "string!",
+          "session": "string",
+          "title": "string",
+          "later": "number",
+          "later_text": "string"
+        }
+      ],
+      "rev": "any"
     }
   },
   "inbox_protocol": {

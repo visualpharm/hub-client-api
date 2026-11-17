@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { checkClientMetrics, checkCore, checkCorrectionRef, checkFiles, checkSendAgent, checkSpaceArticle, checkSpaceNotes, checkSpaceQuestion, checkSpaceReferences, checkSendAudit, checkSendCorrection, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
+import { checkClientMetrics, checkCore, diff, checkCorrectionRef, checkFiles, checkSendAgent, checkSpaceArticle, checkSpaceNotes, checkSpaceQuestion, checkSpaceReferences, checkSendAudit, checkSendCorrection, checkSnapshot, checkSnippets, checkTimeline, loadRules } from "../tools/check.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const contract = JSON.parse(fs.readFileSync(path.join(root, "contract", "v1.json"), "utf8"));
@@ -718,4 +718,36 @@ test("inbox_protocol: takeover и срок удержания описаны, п
   assert.ok("takeover" in ip.config.inbox_protocol && "inbox_hold_ttl" in ip.config);
   assert.equal(takeover_ok.inbox.held, true);
   assert.equal(typeof takeover_failed.error, "string");
+});
+
+test("пути, которые зовут клиенты main: каждый в договоре, у ответа есть форма, примеры модулей сходятся", () => {
+  const calls = [
+    ["POST", "/api/away"], ["POST", "/api/owner/back"], ["POST", "/api/interrupt"], ["POST", "/api/session/compact"],
+    ["POST", "/api/session/reload"], ["POST", "/api/session/remove"], ["POST", "/api/question/dismiss"], ["POST", "/api/tools"],
+    ["POST", "/api/accounts/use"], ["POST", "/api/session/rename"], ["POST", "/api/session/wake"], ["POST", "/api/client/theme"],
+    ["POST", "/api/presence/location"], ["POST", "/api/quick-route"], ["POST", "/api/screencast/send"], ["GET", "/api/screencast/status"],
+    ["POST", "/api/telemetry/input"], ["POST", "/api/todo/done"], ["GET", "/api/usage/cycles"], ["POST", "/api/ask"], ["GET", "/api/ask"],
+    ["GET", "/api/ask/source"], ["GET", "/api/send/receipt"], ["POST", "/api/voice/save"], ["GET", "/api/voice/status"],
+    ["POST", "/api/upload/forget"], ["POST", "/api/refresh"], ["POST", "/api/mod/hubbahub-auto-away/active"],
+    ["GET", "/api/mod/hubbahub-podcast/chapters"], ["POST", "/api/mod/hubbahub-todo-own/later"], ["GET", "/api/mod/hubbahub-todo-own/later"],
+  ];
+  for (const [method, p] of calls) {
+    const r = contract.requests.find((x) => x.method === method && x.path === p);
+    assert.ok(r, `${method} ${p} в договоре`);
+    assert.ok(contract.answers[r.answer], `${method} ${p}: ответ ${r.answer} описан`);
+    assert.ok(!r.feature || r.optional, `${method} ${p}: путь за признаком — необязательный`);
+  }
+  const ok = (name, value) => assert.deepEqual(diff(value, contract.answers[name], name), [], name);
+  ok("send_receipt", { receipt: "accepted", seq: 12, id: "m12" });
+  ok("send_receipt", { receipt: "refused", error: "Сессии X нет.", code: "no_session" });
+  ok("voice_save", { id: "v1", state: "pending", send: "pending", duplicate: true });
+  ok("voice_status", { id: "v1", state: "ok", text: "привет", model: "mai", engines: ["mai"], send: { state: "sent", seq: 40, client_id: "c1", session: "hub" } });
+  ok("upload_forget", { ok: true, removed: false });
+  ok("refresh", { ok: true, gen: 3 });
+  ok("auto_away_active", { ok: true, minutes: 10, auto: false });
+  ok("podcast_chapters", { file: "/a/podcast-1/podcast.m4a", duration_s: 50.2, chapters: [{ start_s: 0, end_s: 50.2, title: "Главное" }] });
+  ok("todo_later", { ok: true, id: "t:1", later: null, text: null });
+  ok("todo_later_list", { later: [{ id: "t:1", later: 1800000000, later_text: "ср 28.10, 10:00" }], rev: "r1" });
+  assert.deepEqual(diff({ ok: true }, contract.answers.auto_away_active, "auto_away_active"), ["auto_away_active.auto: нет поля"]);
+  assert.deepEqual(diff({ state: "ok" }, contract.answers.voice_status, "voice_status"), ["voice_status.id: нет поля"]);
 });

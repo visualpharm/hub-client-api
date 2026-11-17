@@ -128,3 +128,12 @@ rules and rev stay. Undo: remove the two fields and the `absent` lines. By: agen
 
 ## 2026-11-16 · Inbox takeover и срок удержания — в договоре отдельным разделом inbox_protocol
 Решение: события плагина hub-plugin-teams (draft_control/draft_state/draft_control_failed, config.inbox_protocol.takeover, inbox_hold_ttl, reason expired) описаны справочно в contract/v1.json, v1.js не менялся; источник истины — docs/inbox-management.md плагина. Схема токена повторена в трёх местах намеренно (читаемость), тест сверяет копии. Откат: удалить раздел inbox_protocol, запись в CHANGES и тест.
+
+## 2026-11-17 · Договор покрывает все пути, которые зовут клиенты main
+Решение: в contract/v1.json — 31 запись requests для путей iOS/Mac и Android (ядро и модули), у каждой — answer, имя формы в
+answers, и note словами (что делает, отказы, кто шлёт). Пути модулей — optional с feature, где модуль его объявляет; без признака
+(refresh, usage/cycles, send/receipt, todo/done) — optional, клиент узнаёт по 404. probe — только у безвредных GET
+(usage/cycles, отложенные To-do); квитанция без пробы: 503 занятого читателя журнала дал бы ложную тревогу.
+Почему: договор описывал не всё, что клиенты реально зовут (задача d3126191, 17+10 путей); answer и note дают сверке и
+авторам клиентов одну форму ответа вместо чтения кода модулей. v1.js и hub-plugin.json не меняются: правил вида нет.
+Откат: удалить новые записи requests и answers (тест «пути, которые зовут клиенты main» — вместе с ними).

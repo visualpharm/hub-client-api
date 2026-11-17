@@ -2,6 +2,17 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+Every path the clients on main call is now in the contract (31 requests; v1.js unchanged). Core: POST /api/away, /api/owner/back,
+/api/interrupt, /api/session/compact|reload|remove, /api/question/dismiss, /api/tools (answer action: {ok} or {error}),
+GET /api/send/receipt (API 1.29; older cores 400/404/405 — no receipt, a resend with the same client_id is safe). Modules, each optional
+behind its feature: accounts/use, session/rename|wake, client/theme, presence/location, quick-route, screencast/send|status,
+telemetry/input (core PR input-routed not merged: no feature on the live hub), todo/done, usage/cycles, ask (POST, GET) and
+ask/source (ask.feed), voice/save and voice/status (voice.send_async), upload/forget, refresh (client-misc), auto-away/active,
+podcast/chapters, todo-own/later (POST and GET, todo.later). New request keys: answer (the form in answers) and note.
+Found while writing it down: iOS warmAsk sends POST /api/ask {session, warm} and resolveAskSource the old form without job —
+feed-ask 0.3.0 answers 400 to both; iOS/Mac send no force and rid in presence/location; Android sends no client/theme,
+upload/forget or refresh and does not read usage/cycles.
+
 Inbox takeover and hold term in the contract (hub-plugin-teams docs/inbox-management.md; v1.js unchanged; contract inbox_protocol):
 draft_control action takeover {id, rid, inbox token, editor} answers draft_state with the same id and rid, held true, holder = editor,
 edit_version + 1 (the displaced client's token is stale; it keeps its text and may take back only with its own takeover); refusal is
