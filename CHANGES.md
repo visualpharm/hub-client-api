@@ -2,6 +2,10 @@
 
 ## Unreleased (API 1, rules rev 5)
 
+POST /api/voice/stream (core PR #655, Plugin API 1.36) behind feature voice.stream: body {id, seq, mime audio/L16;rate=16000;channels=1,
+data, final, session}, answer voice_stream {text, done}, 409 {error, seq} for a chunk ahead; without the feature clients record whole
+(/api/voice or /api/voice/raw). The feature is a name in features, like voice.raw — not a key of snapshot.voice.
+
 Every path the clients on main call is now in the contract (31 requests; v1.js unchanged). Core: POST /api/away, /api/owner/back,
 /api/interrupt, /api/session/compact|reload|remove, /api/question/dismiss, /api/tools (answer action: {ok} or {error}),
 GET /api/send/receipt (API 1.29; older cores 400/404/405 — no receipt, a resend with the same client_id is safe). Modules, each optional
