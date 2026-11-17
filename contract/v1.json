@@ -1007,7 +1007,7 @@
       "path": "/api/away",
       "body": [],
       "answer": "action",
-      "note": "«Ушёл» без срока (ядро owner.away); клиенты шлют {}, hours (0 < ч ≤ 720) ядро читает, клиенты не шлют. Отказ — 409 {error} словами."
+      "note": "«Ушёл» без срока (ядро owner.away); клиенты шлют {}, hours (0 < ч ≤ 720) ядро читает, клиенты не шлют. Отказ — 409 {error} словами; 400 — hours не число или вне 0 < ч ≤ 720."
     },
     {
       "method": "POST",
@@ -1229,7 +1229,6 @@
       "optional": true,
       "owner": true,
       "answer": "usage_cycles",
-      "probe": "window=five_hour&n=2",
       "note": "Модуль hubbahub-usage (без признака; нет модуля — 404): лист «Расход за неделю» по окну лимита (five_hour, seven_day…; по моделям истории нет), n 2–100, before — next_before прошлой страницы. Первым — текущий цикл активного аккаунта. 503 {error} — история ещё собирается (ждать до 60 с), 400 — окно, n или курсор."
     },
     {
@@ -1388,7 +1387,6 @@
       "optional": true,
       "feature": "todo.later",
       "answer": "todo_later_list",
-      "probe": "",
       "note": "Список отложенных (в снимке его нет): строки как в snapshot.todo плюс later и later_text. 503 — список ещё не собран."
     }
   ],
