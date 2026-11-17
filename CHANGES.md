@@ -16,6 +16,8 @@ podcast/chapters, todo-own/later (POST and GET, todo.later). New request keys: a
 Found while writing it down: iOS warmAsk sends POST /api/ask {session, warm} and resolveAskSource the old form without job —
 feed-ask 0.3.0 answers 400 to both; iOS/Mac send no force and rid in presence/location; Android sends no client/theme,
 upload/forget or refresh and does not read usage/cycles.
+Fixed in hub-ios cfef4049e: iPhone and Mac send POST /api/ask only {session, question, client_id} (no warm-up) and open
+GET /api/ask/source only by {job, n, digest}; the notes of both requests now describe that.
 
 Inbox takeover and hold term in the contract (hub-plugin-teams docs/inbox-management.md; v1.js unchanged; contract inbox_protocol):
 draft_control action takeover {id, rid, inbox token, editor} answers draft_state with the same id and rid, held true, holder = editor,

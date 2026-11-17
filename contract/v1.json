@@ -1268,7 +1268,7 @@
       "feature": "ask.feed",
       "owner": true,
       "answer": "ask_job",
-      "note": "Модуль hubbahub-feed-ask: вопрос по ленте сессии; 202 {status: pending, job} — дальше GET /api/ask?job=; повтор с тем же client_id отдаёт то же задание, другой вопрос с ним — 409. 429 — уже два вопроса; ошибки — {error: {code, message}}. iOS шлёт ещё прогрев {session, warm: true} — модуль 0.3.0 его не знает и отвечает 400, клиент ответ не читает."
+      "note": "Модуль hubbahub-feed-ask: вопрос по ленте сессии; 202 {status: pending, job} — дальше GET /api/ask?job=; повтор с тем же client_id отдаёт то же задание, другой вопрос с ним — 409. 429 — уже два вопроса; ошибки — {error: {code, message}}. iPhone и Mac шлют только {session, question, client_id}, без прогрева (hub-ios cfef4049e); отказ {error: {code}} показывают словами по code, голый 502/504 прокси — как потерю связи."
     },
     {
       "method": "GET",
@@ -1294,7 +1294,7 @@
       "feature": "ask.feed",
       "owner": true,
       "answer": "ask_source",
-      "note": "Источник [N] ответа feed-ask: хаб сверяет номер, слепок записи и ленту. 404 {error} — источника больше нет, 409 — запись изменилась. Прежняя форма iOS без job (session, session_id, seq, digest) модулем 0.3.0 не принимается — 400."
+      "note": "Источник [N] ответа feed-ask: хаб сверяет номер, слепок записи и ленту. 404 {error} — источника больше нет, 409 — запись изменилась. iPhone и Mac открывают источник только по job ответа (hub-ios cfef4049e): 409 — «запись изменилась», 404 — «недоступен»; прежней формы без job больше нет."
     },
     {
       "method": "GET",
