@@ -736,6 +736,7 @@ test("пути, которые зовут клиенты main: каждый в �
     assert.ok(r, `${method} ${p} в договоре`);
     assert.ok(contract.answers[r.answer], `${method} ${p}: ответ ${r.answer} описан`);
     assert.ok(!r.feature || r.optional, `${method} ${p}: путь за признаком — необязательный`);
+    if (method === "GET") assert.equal(r.probe, undefined, `${method} ${p}: без пробы — 503 при запуске или занятом журнале дал бы ложную тревогу сторожа`);
   }
   const ok = (name, value) => assert.deepEqual(diff(value, contract.answers[name], name), [], name);
   ok("send_receipt", { receipt: "accepted", seq: 12, id: "m12" });
